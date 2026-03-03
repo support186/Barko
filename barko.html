@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BARKOUR: Apocalypse</title>
+    <style>
+        /* --- 1000% UPGRADE: CINEMATIC STYLING --- */
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+
+        body {
+            margin: 0; padding: 0; height: 100vh; overflow: hidden;
+            background-color: #050505; font-family: 'Montserrat', sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            color: white; user-select: none; touch-action: manipulation;
+        }
+
+        #device-screen {
+            width: 100%; max-width: 450px; height: 100%; max-height: 900px;
+            background: #111; position: relative; display: flex; flex-direction: column;
+            box-shadow: 0 0 50px rgba(0,0,0,1); overflow: hidden;
+        }
+
+        /* --- THE VIEWFINDER (Cinematic Backgrounds) --- */
+        #viewport {
+            flex-grow: 1; position: relative; overflow: hidden;
+            background-color: #222; background-size: cover; background-position: center;
+            transition: background-image 0.5s ease-in-out, transform 0.5s ease;
+        }
+        
+        /* Dark overlay to make UI readable */
+        #viewport::after {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 30%, rgba(0,0,0,0.8) 100%);
+            pointer-events: none;
+        }
+
+        /* --- GLOWING HOTSPOTS --- */
+        .hotspot {
+            position: absolute; width: 40px; height: 40px; transform: translate(-50%, -50%);
+            border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.1); cursor: pointer; z-index: 10;
+            box-shadow: 0 0 15px rgba(255,255,255,0.5);
+            animation: pulse 2s infinite; display: flex; justify-content: center; align-items: center;
+        }
+        .hotspot::after { content: '🔎'; font-size: 14px; opacity: 0.8;}
+        @keyframes pulse { 0% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 10px rgba(255,255,255,0.2); } 50% { transform: translate(-50%, -50%) scale(1.2); box-shadow: 0 0 20px rgba(255,255,255,0.8); } 100% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 10px rgba(255,255,255,0.2); } }
+
+        /* --- THE DOG POV --- */
+        #dog-head {
+            position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
+            width: 150px; height: 180px; z-index: 20; pointer-events: none;
+            /* Premium CSS Shading for the Dog */
+            background: radial-gradient(ellipse at top, #8B4513 0%, #3e1b04 80%);
+            border-radius: 50px 50px 20px 20px; box-shadow: 0 -10px 30px rgba(0,0,0,0.8);
+        }
+        .dog-ear-left, .dog-ear-right {
+            position: absolute; top: 20px; width: 40px; height: 80px;
+            background: #2a1102; border-radius: 50% 50% 10px 10px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        .dog-ear-left { left: -10px; transform: rotate(-15deg); }
+        .dog-ear-right { right: -10px; transform: rotate(15deg); }
+
+        /* --- GLASSMORPHISM UI (HUD & CONTROLS) --- */
+        #hud {
+            position: absolute; top: 20px; left: 20px; right: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 20px; z-index: 50; border-radius: 15px;
+            background: rgba(20, 20, 20, 0.6); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1); font-weight: 700; font-size: 14px;
+        }
+
+        #control-panel {
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(15px);
+            border-top: 1px solid rgba(255,255,255,0.1); padding: 20px;
+            box-sizing: border-box; z-index: 50; display: flex; flex-direction: column; gap: 15px;
+            transform: translateY(0); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        #narrator {
+            font-size: 15px; line-height: 1.6; color: #e2e8f0; font-weight: 400;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8); min-height: 50px;
+        }
+        .highlight { color: #f59e0b; font-weight: 700; }
+
+        #button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .btn {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: white; padding: 15px; border-radius: 10px; font-family: 'Montserrat', sans-serif;
+            font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;
+            cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn:active { background: rgba(255,255,255,0.3); transform: scale(0.95); }
+        
+        /* Special Button Styles */
+        .btn-move { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.5); color: #93c5fd; }
+        .btn-action { background: rgba(245, 158, 11, 0.2); border-color: rgba(245, 158, 11, 0.5); color: #fcd34d; }
+        .btn-danger { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.5); color: #fca5a5; }
+
+        /* Game Over Screen */
+        #game-over {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 999; display: none;
+            flex-direction: column; justify-content: center; align-items: center; text-align: center;
+        }
+        #game-over h1 { color: #ef4444; font-size: 40px; margin-bottom: 10px; }
+        
+    </style>
+</head>
+<body>
+
+    <div id="device-screen">
+        
+        <div id="hud">
+            <div>❤️ <span id="health-val">100</span></div>
+            <div>🎒 <span id="inventory-val">Empty</span></div>
+        </div>
+
+        <div id="viewport">
+            <div id="hotspots-container"></div>
+            <div id="dog-head">
+                <div class="dog-ear-left"></div>
+                <div class="dog-ear-right"></div>
+            </div>
+        </div>
+
+        <div id="control-panel">
+            <div id="narrator">Loading the Apocalypse...</div>
+            <div id="button-grid"></div>
+        </div>
+
+        <div id="game-over">
+            <h1>YOU DIED</h1>
+            <p style="margin-bottom: 30px;">A bad dog ending.</p>
+            <button class="btn btn-action" onclick="startGame()">RESTART</button>
+        </div>
+
+    </div>
+
+    <script>
+        // --- PHASE 3: THE JSON STATE MACHINE (THE BRAIN) ---
+        // This dictionary holds the entire universe. 
+        // We use picsum.photos to generate dynamic, high-quality realistic background images.
+        
+        const worldData = {
+            "home": {
+                bgImage: "https://picsum.photos/seed/home/800/800",
+                introText: "You are Home. The air smells like stale kibble and safety.",
+                items: [
+                    {
+                        name: "Front Door", x: "50%", y: "40%",
+                        actions: [
+                            { label: "Scratch", type: "move", result: "The human opens the door. You run out!", targetScene: "park" },
+                            { label: "Bite Knob", type: "danger", result: "You chip a tooth.", damage: 10 },
+                            { label: "Pee on Mat", type: "action", result: "Territory secured. The human sighs loudly." }
+                        ]
+                    },
+                    {
+                        name: "Roomba", x: "80%", y: "80%",
+                        actions: [
+                            { label: "Bark", type: "action", result: "It wakes up and starts cleaning in fear." },
+                            { label: "Ride", type: "action", result: "You surf the robot across the living room." }
+                        ]
+                    }
+                ]
+            },
+            "park": {
+                bgImage: "https://picsum.photos/seed/park/800/800",
+                introText: "The Park. The smell of squirrels and ancient rivalries fills your nose.",
+                items: [
+                    {
+                        name: "Old Couple", x: "20%", y: "50%",
+                        actions: [
+                            { label: "Bark Loudly", type: "danger", result: "Heart attack! Animal control arrives. You are taken to Jail.", targetScene: "pound" },
+                            { label: "Be Cute", type: "action", result: "They pet you! You steal their house keys.", giveItem: "Keys" },
+                            { label: "Hump Leg", type: "danger", result: "You get pepper-sprayed!", damage: 20 }
+                        ]
+                    },
+                    {
+                        name: "Big Tree", x: "70%", y: "30%",
+                        actions: [
+                            { label: "Sniff", type: "action", result: "Smells like a Golden Retriever was here 2 hours ago." },
+                            { label: "Dig", type: "action", result: "You found a buried diamond ring!", giveItem: "Ring" }
+                        ]
+                    },
+                    {
+                        name: "Stranger's House", x: "90%", y: "50%",
+                        actions: [
+                            { label: "Enter Door", type: "move", result: "You approach the mysterious house...", targetScene: "strangerHouse", requireItem: "Keys" }
+                        ]
+                    }
+                ]
+            },
+            "pound": {
+                bgImage: "https://picsum.photos/seed/jail/800/800",
+                introText: "The Pound. Cold cages. Despair. You must escape.",
+                items: [
+                    {
+                        name: "Sleeping Guard", x: "50%", y: "40%",
+                        actions: [
+                            { label: "Lick Face", type: "action", result: "He wakes up, pets you, and goes back to sleep." },
+                            { label: "Bite Crotch", type: "danger", result: "Extreme violence! He drops his keys and runs. You are free!", targetScene: "park" }
+                        ]
+                    },
+                    {
+                        name: "Rabid Pitbull", x: "20%", y: "60%",
+                        actions: [
+                            { label: "Growl", type: "action", result: "He whimpers. You are the Alpha now." }
+                        ]
+                    }
+                ]
+            },
+            "strangerHouse": {
+                bgImage: "https://picsum.photos/seed/mansion/800/800",
+                introText: "You used the stolen keys. It's fancy. Very pee-able.",
+                items: [
+                    {
+                        name: "Persian Rug", x: "50%", y: "80%",
+                        actions: [
+                            { label: "Vomit", type: "action", result: "You ruin the $10,000 rug. You feel amazing.", heal: 20 },
+                            { label: "Sleep", type: "action", result: "Very soft.", heal: 10 }
+                        ]
+                    },
+                    {
+                        name: "Back Window", x: "80%", y: "40%",
+                        actions: [
+                            { label: "Jump Out", type: "move", result: "You escape into the back alley.", targetScene: "alley" }
+                        ]
+                    }
+                ]
+            },
+            "alley": {
+                bgImage: "https://picsum.photos/seed/alley/800/800",
+                introText: "A dark alleyway. Smells like garbage and opportunity.",
+                items: [
+                    {
+                        name: "Dead Skunk", x: "30%", y: "80%",
+                        actions: [
+                            { label: "Roll in it", type: "action", result: "You smell horrific. You are invincible." }
+                        ]
+                    },
+                    {
+                        name: "Go to Park", x: "80%", y: "50%",
+                        actions: [
+                            { label: "Waddle Away", type: "move", result: "You head back to the park.", targetScene: "park" }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // --- PHASE 2: THE GAME ENGINE (JAVASCRIPT) ---
+        let health = 100;
+        let inventory = [];
+        let currentSceneId = "home";
+
+        const elements = {
+            viewport: document.getElementById('viewport'),
+            hotspots: document.getElementById('hotspots-container'),
+            narrator: document.getElementById('narrator'),
+            buttons: document.getElementById('button-grid'),
+            health: document.getElementById('health-val'),
+            inv: document.getElementById('inventory-val'),
+            gameOver: document.getElementById('game-over')
+        };
+
+        function startGame() {
+            health = 100; inventory = []; currentSceneId = "home";
+            elements.gameOver.style.display = "none";
+            updateHUD(); loadScene(currentSceneId);
+        }
+
+        function updateHUD() {
+            elements.health.innerText = health;
+            elements.inv.innerText = inventory.length > 0 ? inventory.join(', ') : "Empty";
+            if (health <= 0) elements.gameOver.style.display = "flex";
+        }
+
+        // Loads the background, text, and hotspots for a scene
+        function loadScene(sceneId) {
+            currentSceneId = sceneId;
+            const scene = worldData[sceneId];
+            
+            // Set cinematic background
+            elements.viewport.style.backgroundImage = `url('${scene.bgImage}')`;
+            elements.viewport.style.transform = "scale(1)"; // Reset zoom
+            
+            elements.narrator.innerHTML = `<span class="highlight">LOCATION:</span> ${scene.introText}`;
+            elements.hotspots.innerHTML = ''; // Clear old hotspots
+
+            // Create interactive glowing orbs
+            scene.items.forEach((item, index) => {
+                const spot = document.createElement('div');
+                spot.className = 'hotspot';
+                spot.style.left = item.x; spot.style.top = item.y;
+                spot.onclick = () => focusItem(item);
+                elements.hotspots.appendChild(spot);
+            });
+
+            // Default buttons when entering a scene
+            elements.buttons.innerHTML = `
+                <button class="btn" onclick="loadScene('${sceneId}')">🐾 Sniff Air</button>
+                <button class="btn" onclick="loadScene('${sceneId}')">🐕 Scratch Ear</button>
+            `;
+        }
+
+        // When you click a hotspot, zoom in and load specific actions
+        function focusItem(item) {
+            elements.viewport.style.transform = "scale(1.1)"; // Cinematic Zoom
+            elements.narrator.innerHTML = `You inspect the <span class="highlight">${item.name}</span>.`;
+            elements.buttons.innerHTML = '';
+
+            item.actions.forEach(act => {
+                const btn = document.createElement('button');
+                btn.className = `btn btn-${act.type}`;
+                btn.innerText = act.label;
+                btn.onclick = () => executeAction(act);
+                elements.buttons.appendChild(btn);
+            });
+            
+            // Always add a back button
+            const backBtn = document.createElement('button');
+            backBtn.className = 'btn'; backBtn.innerText = 'Back Away';
+            backBtn.onclick = () => loadScene(currentSceneId);
+            elements.buttons.appendChild(backBtn);
+        }
+
+        // The logic for resolving button clicks
+        function executeAction(act) {
+            // Check required items
+            if (act.requireItem && !inventory.includes(act.requireItem)) {
+                elements.narrator.innerHTML = `You try to ${act.label}, but you need a <span class="highlight">${act.requireItem}</span>!`;
+                return;
+            }
+
+            elements.narrator.innerHTML = act.result;
+
+            if (act.damage) health -= act.damage;
+            if (act.heal) { health += act.heal; if(health>100) health=100; }
+            if (act.giveItem && !inventory.includes(act.giveItem)) inventory.push(act.giveItem);
+            
+            updateHUD();
+
+            if (health > 0 && act.targetScene) {
+                setTimeout(() => loadScene(act.targetScene), 2500); // 2.5 second delay before moving
+                elements.buttons.innerHTML = ''; // Hide buttons while transitioning
+            }
+        }
+
+        // Boot the game
+        startGame();
+
+    </script>
+</body>
+</html>
