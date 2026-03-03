@@ -3,214 +3,399 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BARKOUR: Apocalypse</title>
-    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Space+Grotesk:wght@700;900&display=swap" rel="stylesheet">
+    <title>BARKOUR: THE COMPLETE APOCALYPSE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Space+Grotesk:wght@300;700;900&display=swap" rel="stylesheet">
     <style>
-        :root { --accent: #ff0055; --bg: #050505; --neon: #00ffff; --yellow: #ffe600; }
-        body { margin: 0; padding: 0; height: 100vh; overflow: hidden; background: var(--bg); font-family: 'Space Grotesk', sans-serif; display: flex; justify-content: center; align-items: center; background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px; }
-        #game-container { width: 100%; max-width: 600px; height: 100%; display: flex; flex-direction: column; border: 6px solid #fff; position: relative; overflow: hidden; box-shadow: 10px 10px 0px var(--accent); }
-        
-        /* HUD */
-        #hud { height: 50px; background: var(--yellow); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; color: #000; font-family: 'Bangers'; font-size: 1.5rem; border-bottom: 6px solid #fff; z-index: 50; }
-        
-        /* STAGE */
-        #stage { flex-grow: 1; position: relative; overflow: hidden; transition: background 0.5s; border-bottom: 6px solid #fff; }
-        
-        /* Dog POV */
-        #dog-pov { position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%); width: 150px; height: 170px; z-index: 100; pointer-events: none; }
-        .dog-body { position: absolute; bottom: 0; left: 25px; width: 100px; height: 120px; background: #000; border-radius: 50px 50px 10px 10px; border: 5px solid #fff; }
-        .dog-head { position: absolute; top: 15px; left: 35px; width: 80px; height: 80px; background: #000; border-radius: 50%; border: 5px solid #fff; z-index: 2; }
-        .dog-tail { position: absolute; bottom: 80px; left: 65px; width: 20px; height: 80px; background: #000; border: 4px solid #fff; border-radius: 10px; transform-origin: bottom center; animation: wag 0.2s infinite alternate linear; }
-        @keyframes wag { 0% { transform: rotate(-30deg); } 100% { transform: rotate(30deg); } }
+        /* BARKOUR ENGINE v3.0 - "THE MULTI-SCENE MEGA BUILD"
+           DESIGNED FOR: 2026 MOBILE & DESKTOP BROWSERS
+           STYLE: PUNK-COMIC / HIGH-CONTRAST
+        */
 
-        /* Hotspots */
-        .hotspot { position: absolute; font-family: 'Bangers'; font-size: 1.5rem; background: #fff; color: #000; border: 3px solid #000; padding: 5px 10px; cursor: pointer; box-shadow: 4px 4px 0px #000; transform: translate(-50%, -50%); transition: 0.1s; }
-        .hotspot:active { transform: translate(-50%, -50%) scale(0.9); }
+        :root {
+            --accent: #ff0055;
+            --neon: #00ffff;
+            --yellow: #ffe600;
+            --bg-dark: #050505;
+            --white: #ffffff;
+            --panel-bg: rgba(10, 10, 10, 0.9);
+        }
 
-        /* CONTROLS */
-        #controls { background: #111; padding: 15px; display: flex; flex-direction: column; gap: 10px; height: 260px; }
-        #narrator { background: #000; color: #fff; padding: 12px; border: 3px solid #fff; font-size: 1.1rem; min-height: 60px; box-shadow: 4px 4px 0px var(--neon); overflow-y: auto; }
-        #button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .btn { background: #fff; color: #000; border: 3px solid #000; font-family: 'Bangers'; font-size: 1.4rem; cursor: pointer; padding: 8px; box-shadow: 4px 4px 0px #000; }
-        .btn:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px #000; }
-        .btn-move { background: #00ff00; }
-        .btn-danger { background: var(--accent); color: white; }
+        * { box-sizing: border-box; outline: none; }
+
+        body {
+            margin: 0; padding: 0; height: 100vh; width: 100vw;
+            background-color: var(--bg-dark);
+            font-family: 'Space Grotesk', sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden; color: var(--white);
+        }
+
+        /* Responsive Container */
+        #game-shell {
+            width: 100%; max-width: 600px; height: 100%;
+            border-left: 4px solid var(--white); border-right: 4px solid var(--white);
+            display: flex; flex-direction: column; position: relative;
+            background: #000; box-shadow: 0 0 100px rgba(255, 0, 85, 0.3);
+        }
+
+        /* --- UI: THE TOP HUD --- */
+        #top-bar {
+            height: 60px; background: var(--yellow); border-bottom: 5px solid #000;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 20px; z-index: 100; color: #000;
+        }
+
+        .stat-box { font-family: 'Bangers'; font-size: 1.8rem; display: flex; align-items: center; gap: 8px; }
+        #karma-display { font-size: 1rem; font-family: 'Space Grotesk'; font-weight: 900; background: #000; color: #fff; padding: 2px 10px; border-radius: 5px; }
+
+        /* --- THE STAGE (ANIMATED WORLD) --- */
+        #stage {
+            flex-grow: 1; position: relative; overflow: hidden;
+            background: #222; border-bottom: 5px solid #fff;
+            transition: all 0.5s ease;
+        }
+
+        /* Dog Character - Fixed POV */
+        #dog-container {
+            position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%);
+            width: 180px; height: 200px; z-index: 80; pointer-events: none;
+            transition: all 0.3s ease;
+        }
+        .dog-body {
+            position: absolute; bottom: 0; left: 30px; width: 120px; height: 140px;
+            background: #000; border: 5px solid #fff; border-radius: 60px 60px 10px 10px;
+        }
+        .dog-head-wrap { position: absolute; top: 10px; left: 40px; width: 100px; height: 100px; transition: 0.2s; }
+        .dog-head { width: 100%; height: 100%; background: #000; border: 5px solid #fff; border-radius: 50%; }
+        .dog-tail {
+            position: absolute; bottom: 100px; left: 80px; width: 20px; height: 100px;
+            background: #000; border: 4px solid #fff; border-radius: 10px;
+            transform-origin: bottom center; animation: wag 0.3s infinite alternate ease-in-out;
+        }
+        @keyframes wag { from { transform: rotate(-25deg); } to { transform: rotate(25deg); } }
+
+        /* Interaction Hotspots */
+        .target {
+            position: absolute; transform: translate(-50%, -50%);
+            background: #fff; color: #000; font-family: 'Bangers';
+            padding: 8px 15px; border: 3px solid #000; cursor: pointer;
+            box-shadow: 5px 5px 0px var(--neon); z-index: 30;
+            transition: 0.2s; font-size: 1.2rem;
+        }
+        .target:hover { background: var(--neon); transform: translate(-50%, -50%) scale(1.1) rotate(2deg); }
+
+        /* --- CONTROL PANEL --- */
+        #ui-tray {
+            height: 280px; background: #111; padding: 15px;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+
+        #text-box {
+            background: #000; border: 3px solid #fff; padding: 15px;
+            min-height: 80px; color: #fff; font-size: 1.1rem;
+            box-shadow: 5px 5px 0px var(--accent); overflow-y: auto;
+        }
+
+        #btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         
+        .action-btn {
+            background: #fff; border: 3px solid #000; font-family: 'Bangers';
+            font-size: 1.4rem; padding: 10px; cursor: pointer; box-shadow: 4px 4px 0px #000;
+        }
+        .action-btn:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px #000; }
+        .type-move { background: var(--neon); }
+        .type-danger { background: var(--accent); color: #fff; }
+
         /* Animations */
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
         .shake { animation: shake 0.3s ease-in-out; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+
+        /* Game Screens */
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 200; display: none; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center; padding: 20px;
+        }
+        .overlay h1 { font-family: 'Bangers'; font-size: 5rem; color: var(--accent); margin: 0; }
     </style>
 </head>
 <body>
-    <div id="game-container">
+
+    <div id="game-shell">
         <div id="hud">
-            <div>HP: <span id="hp">100</span></div>
-            <div id="inv">🎒 EMPTY</div>
+            <div class="stat-box">❤️ <span id="hp-ui">100</span></div>
+            <div id="karma-display">GOOD BOY</div>
+            <div class="stat-box">🎒 <span id="inv-ui">0</span></div>
         </div>
+
         <div id="stage">
-            <div id="hotspot-layer"></div>
-            <div id="dog-pov">
+            <div id="actor-layer"></div>
+            <div id="dog-container">
                 <div class="dog-tail"></div>
-                <div class="dog-head"></div>
+                <div class="dog-head-wrap" id="head-node">
+                    <div class="dog-ear-left"></div>
+                    <div class="dog-ear-right"></div>
+                    <div class="dog-head"></div>
+                </div>
                 <div class="dog-body"></div>
             </div>
         </div>
-        <div id="controls">
-            <div id="narrator">Welcome to the end of the world, Good Boy. Click a target to begin.</div>
-            <div id="button-grid"></div>
+
+        <div id="ui-tray">
+            <div id="text-box">Waking up...</div>
+            <div id="btn-grid"></div>
+        </div>
+
+        <div id="game-over" class="overlay">
+            <h1>WASTED</h1>
+            <p>YOU WERE NOT THE GOODEST BOY.</p>
+            <button class="btn btn-move" onclick="location.reload()">REBOOT SYSTEM</button>
+        </div>
+
+        <div id="victory" class="overlay">
+            <h1 style="color: var(--neon)">LEGEND</h1>
+            <p>YOU FOUND THE BEACH. THE WORLD IS YOURS.</p>
+            <button class="btn btn-move" onclick="location.reload()">PLAY AGAIN</button>
         </div>
     </div>
 
     <script>
-        let state = { hp: 100, inventory: [], location: 'apt' };
+        /* --- THE MEGA ENGINE --- */
 
-        const scenes = {
-            apt: { text: "START: Your apartment. The humans are gone. The kibble is empty.", color: "#4e54c8", items: [
-                { name: "THE DOOR", x: "50%", y: "40%", options: [
-                    { text: "SCRATCH", type: "move", next: "hall", msg: "You claw through the wood! Freedom!" },
-                    { text: "BARK", msg: "Silence echoes back. No one is coming." },
-                    { text: "PEE", msg: "The expensive rug is now yours." },
-                    { text: "CHEW SHOE", item: "Leather Lace", msg: "Delicious leather. You feel rebellious." }
-                ]}]},
-            hall: { text: "HALLWAY: Dim lights. A vacuum hums. The cat next door is watching.", color: "#2c3e50", items: [
-                { name: "CAT", x: "70%", y: "50%", options: [
-                    { text: "CHASE", type: "move", next: "elev", msg: "You chase the cat into the open elevator!" },
-                    { text: "HISS", damage: 10, msg: "The cat swipes your nose! Ouch." },
-                    { text: "WAG", msg: "The cat judges you silently." },
-                    { text: "SNIFF", msg: "Smells like fish and arrogance." }
-                ]}]},
-            elev: { text: "ELEVATOR: Going down. Smooth music plays while the world burns.", color: "#7f8c8d", items: [
-                { name: "BUTTONS", x: "80%", y: "40%", options: [
-                    { text: "PRESS LOBBY", type: "move", next: "lobby", msg: "Ding! Ground floor." },
-                    { text: "LICK BUTTON", damage: 5, msg: "Tastes like electricity. -5 HP" },
-                    { text: "HOWL", msg: "The acoustics here are amazing." },
-                    { text: "SIT", msg: "You are a very patient boy." }
-                ]}]},
-            lobby: { text: "LOBBY: The glass doors are cracked. The city awaits.", color: "#16a085", items: [
-                { name: "DOORMAN", x: "30%", y: "50%", options: [
-                    { text: "SNEAK PAST", type: "move", next: "street", msg: "You slip past his snoring form." },
-                    { text: "BITE ANKLE", type: "danger", damage: 20, msg: "He kicks you! RUN!" },
-                    { text: "BE CUTE", item: "Hat", msg: "He puts his hat on you. You look dapper." },
-                    { text: "BARK", msg: "He wakes up and chases you outside!" }
-                ]}]},
-            street: { text: "MAIN ST: Total chaos. Abandoned cars and pigeons everywhere.", color: "#2980b9", items: [
-                { name: "PIGEONS", x: "50%", y: "70%", options: [
-                    { text: "HUNT", item: "Feather", msg: "You caught one! Well, just a feather." },
-                    { text: "BARK", msg: "They fly away, mocking you." },
-                    { text: "EAT TRASH", damage: 10, msg: "Bad pizza. Very bad pizza." },
-                    { text: "GO PARK", type: "move", next: "park", msg: "You follow the smell of grass." }
-                ]}]},
-            park: { text: "THE PARK: The last green spot in the city.", color: "#27ae60", items: [
-                { name: "PICNIC", x: "40%", y: "60%", options: [
-                    { text: "STEAL HAM", item: "Ham", msg: "Glorious meat acquired!" },
-                    { text: "PEE BASKET", damage: 15, msg: "The dad throws a frisbee at your head!" },
-                    { text: "BEG", health: 20, msg: "They share a sandwich. +20 HP" },
-                    { text: "GO ALLEY", type: "move", next: "alley", msg: "You spot a shortcut." }
-                ]}]},
-            alley: { text: "ALLEY: Dark and wet. A dumpster looms over you.", color: "#2c3e50", items: [
-                { name: "DUMPSTER", x: "50%", y: "50%", options: [
-                    { text: "JUMP IN", item: "Glowing Key", msg: "You found a key in the sludge!" },
-                    { text: "SNIFF", msg: "Smells like 'Danger'." },
-                    { text: "GO SUBWAY", type: "move", next: "subway", msg: "You head down the stairs." },
-                    { text: "HIDE", msg: "You feel invisible here." }
-                ]}]},
-            subway: { text: "SUBWAY: The trains are silent. Shadows move on the tracks.", color: "#000", items: [
-                { name: "SHADOWS", x: "30%", y: "70%", options: [
-                    { text: "FIGHT", damage: 30, msg: "It was a rat king! You barely survived." },
-                    { text: "SNEAK", type: "move", next: "lab", msg: "You follow the tracks to a secret door." },
-                    { text: "HOWL", msg: "The echoes are terrifying." },
-                    { text: "FIND FOOD", item: "Rat Tail", msg: "Gross, but it's food." }
-                ]}]},
-            lab: { text: "SECRET LAB: Glowing tubes and science stuff.", color: "#8e44ad", items: [
-                { name: "THE TUBE", x: "50%", y: "40%", options: [
-                    { text: "SMASH", type: "move", next: "petstore", msg: "Alarms blare! The gas makes you feel strong." },
-                    { text: "DRINK FLUID", damage: 50, msg: "It's radioactive juice! -50 HP" },
-                    { text: "BARK", msg: "The computer bleeps at you." },
-                    { text: "SIT", msg: "The floor is uncomfortably cold." }
-                ]}]},
-            petstore: { text: "PET STORE: Cages line the walls. Your brothers are trapped.", color: "#d35400", items: [
-                { name: "CAGE LOCK", x: "40%", y: "50%", options: [
-                    { text: "USE KEY", type: "move", next: "rooftop", msg: "The puppies are free! We ride to the roof!" },
-                    { text: "BITE LOCK", damage: 10, msg: "Metal wins. Your jaw hurts." },
-                    { text: "WHINE", msg: "They whine back. It's heartbreaking." },
-                    { text: "BARK", msg: "The noise is deafening." }
-                ]}]},
-            rooftop: { text: "ROOFTOP: The final climb. The helicopter is waiting.", color: "#c0392b", items: [
-                { name: "BOSS CAT", x: "50%", y: "30%", options: [
-                    { text: "ULTIMATE BARK", type: "move", next: "beach", msg: "The cat falls! The path is clear!" },
-                    { text: "TACKLE", damage: 40, msg: "A brutal fight on the edge!" },
-                    { text: "USE HAM", msg: "The cat eats the ham and leaves. Smart." },
-                    { text: "WAG", msg: "The cat just laughs at you." }
-                ]}]},
-            beach: { text: "THE BEACH: You made it. The apocalypse can't find you here.", color: "#f1c40f", items: [
-                { name: "THE OCEAN", x: "50%", y: "60%", options: [
-                    { text: "WIN!", msg: "You are the best boy in history." },
-                    { text: "WIN!", msg: "You are the best boy in history." },
-                    { text: "WIN!", msg: "You are the best boy in history." },
-                    { text: "WIN!", msg: "You are the best boy in history." }
-                ]}]}
+        let gameState = {
+            hp: 100,
+            karma: 0,
+            inventory: [],
+            currentLoc: 'apartment'
+        };
+
+        const world = {
+            "apartment": {
+                desc: "YOUR APARTMENT. The humans left weeks ago. The silence is loud.",
+                color: "#1e1b4b",
+                targets: [
+                    { name: "THE DOOR", x: "50%", y: "45%", options: [
+                        { txt: "SCRATCH EXIT", type: "move", next: "hallway", msg: "You claw through the wood. Freedom at last." },
+                        { txt: "WAIT FOR HUMAN", type: "action", msg: "You wait 4 hours. No one comes. You feel lonely." },
+                        { txt: "PEE ON RUG", type: "action", karma: -5, msg: "The rug is soaked. You are the king of this room now." },
+                        { txt: "FIND KIBBLE", type: "action", item: "Dry Kibble", heal: 10, msg: "You found a stray piece under the fridge! +10 HP" }
+                    ]},
+                    { name: "WINDOW", x: "80%", y: "30%", options: [
+                        { txt: "LOOK OUT", type: "action", msg: "The city below is covered in vines and smoke." },
+                        { txt: "HOWL", type: "action", msg: "AOOOOUUUUU! The city howls back." },
+                        { txt: "JUMP", type: "danger", damage: 100, msg: "It's a long way down..." },
+                        { txt: "WATCH BIRD", type: "action", karma: 5, msg: "You watch a pigeon. You decide not to bark at it. +5 Karma." }
+                    ]}
+                ]
+            },
+            "hallway": {
+                desc: "THE HALLWAY. Flickering lights. A heavy smell of wet fur.",
+                color: "#0f172a",
+                targets: [
+                    { name: "NEIGHBOR CAT", x: "60%", y: "50%", options: [
+                        { txt: "CHASE", type: "move", next: "elevator", karma: -10, msg: "You chase the cat into the elevator!" },
+                        { txt: "SNIFF", type: "action", msg: "Smells like expensive tuna and malice." },
+                        { txt: "HISS", type: "danger", damage: 10, msg: "The cat swipes! -10 HP" },
+                        { txt: "SHARE KIBBLE", type: "action", req: "Dry Kibble", karma: 20, msg: "The cat takes the food and lets you pass." }
+                    ]}
+                ]
+            },
+            "elevator": {
+                desc: "THE ELEVATOR. It's stuck between floors. The cables are creaking.",
+                color: "#334155",
+                targets: [
+                    { name: "CONTROL PANEL", x: "70%", y: "40%", options: [
+                        { txt: "BUTTON MASH", type: "move", next: "lobby", msg: "The elevator screams and drops to the lobby!" },
+                        { txt: "URINATE", type: "danger", damage: 5, msg: "Electricity sparks! Ouch. -5 HP" },
+                        { txt: "SLEEP", type: "action", heal: 5, msg: "You take a nap while stuck. +5 HP" },
+                        { txt: "FIND BONE", type: "action", item: "Old Bone", msg: "Someone dropped a treat here!" }
+                    ]}
+                ]
+            },
+            "lobby": {
+                desc: "THE LOBBY. Shattered glass everywhere. A zombie doorman is leaning on the desk.",
+                color: "#164e63",
+                targets: [
+                    { name: "DOORMAN", x: "30%", y: "50%", options: [
+                        { txt: "SNEAK", type: "move", next: "street", msg: "You slip past his rotting feet." },
+                        { txt: "BITE ANKLE", type: "danger", damage: 20, msg: "He groans and kicks you into the street!" },
+                        { txt: "WAG TAIL", type: "action", karma: 10, msg: "He smiles? Or his jaw just fell off. Hard to tell." },
+                        { txt: "BEG", type: "action", msg: "He has no treats. Only sadness." }
+                    ]}
+                ]
+            },
+            "street": {
+                desc: "MAIN STREET. Abandoned cars block the road. Pigeons rule the sky.",
+                color: "#1e3a8a",
+                targets: [
+                    { name: "HOTDOG CART", x: "50%", y: "70%", options: [
+                        { txt: "STEAL WIENER", type: "action", item: "Hotdog", heal: 20, msg: "JACKPOT! +20 HP" },
+                        { txt: "KNOCK OVER", type: "action", karma: -10, msg: "Mustard everywhere. You monster." },
+                        { txt: "FIND PARK", type: "move", next: "park", msg: "You smell grass in the distance." },
+                        { txt: "BARK AT BIRDS", type: "action", msg: "The pigeons mock you from the traffic lights." }
+                    ]}
+                ]
+            },
+            "park": {
+                desc: "THE PARK. Survivors are having a tense picnic.",
+                color: "#065f46",
+                targets: [
+                    { name: "SURVIVORS", x: "40%", y: "55%", options: [
+                        { txt: "STEAL HAM", type: "danger", damage: 15, item: "Honey Ham", msg: "You grab the ham but the dad hits you with a shoe!" },
+                        { txt: "BEG", type: "action", karma: 10, heal: 10, msg: "The child gives you a crust. +10 HP" },
+                        { txt: "PEE ON BASKET", type: "danger", karma: -20, damage: 10, msg: "They chase you out of the park!" },
+                        { txt: "FIND ALLEY", type: "move", next: "alley", msg: "You spot a dark path behind the trees." }
+                    ]}
+                ]
+            },
+            "alley": {
+                desc: "THE ALLEY. Neon signs flicker in the puddles.",
+                color: "#1e1b4b",
+                targets: [
+                    { name: "DUMPSTER", x: "50%", y: "50%", options: [
+                        { txt: "DIVE IN", type: "action", item: "Lab Keycard", msg: "You found a shiny card in the trash!" },
+                        { txt: "SNIFF", type: "action", msg: "Smells like 'Don't Open This'." },
+                        { txt: "GO SUBWAY", type: "move", next: "subway", msg: "You head down into the dark tunnels." },
+                        { txt: "SLEEP", type: "action", heal: 10, msg: "A quick nap in the shadows." }
+                    ]}
+                ]
+            },
+            "subway": {
+                desc: "SUBWAY TUNNELS. Rats the size of cats are scurrying here.",
+                color: "#020617",
+                targets: [
+                    { name: "RAT KING", x: "30%", y: "70%", options: [
+                        { txt: "BATTLE", type: "danger", damage: 30, msg: "A fierce fight! You win, but you bleed." },
+                        { txt: "OFFER HAM", type: "action", req: "Honey Ham", karma: 30, msg: "The Rats bow to you. They lead you to the Lab." },
+                        { txt: "SNEAK", type: "move", next: "lab", msg: "You follow the power lines to a heavy steel door." },
+                        { txt: "HOWL", type: "action", msg: "The sound echoes for miles." }
+                    ]}
+                ]
+            },
+            "lab": {
+                desc: "THE SECRET LAB. This is where the 'incident' happened.",
+                color: "#4c1d95",
+                targets: [
+                    { name: "MAINFRAME", x: "50%", y: "40%", options: [
+                        { txt: "SWIPE CARD", type: "move", next: "petstore", req: "Lab Keycard", msg: "The vault door hisses open!" },
+                        { txt: "CHEW CABLES", type: "danger", damage: 40, msg: "ZAP!! High voltage dog. -40 HP" },
+                        { txt: "URINATE", type: "action", karma: -50, msg: "You short-circuit the whole building." },
+                        { txt: "BARK", type: "action", msg: "A recording says 'Access Denied, Woof'." }
+                    ]}
+                ]
+            },
+            "petstore": {
+                desc: "THE PET STORE. Dozens of dogs are locked in high-tech cages.",
+                color: "#7c2d12",
+                targets: [
+                    { name: "PRISONER 01", x: "40%", y: "50%", options: [
+                        { txt: "FREE THEM", type: "move", next: "construction", karma: 100, msg: "The pack is free! We run to the skyline!" },
+                        { txt: "STEAL TOYS", type: "action", item: "Squeaky", msg: "You got a toy! You feel happy." },
+                        { txt: "EAT TREATS", type: "action", heal: 50, msg: "Premium organic treats. +50 HP" },
+                        { txt: "WHINE", type: "action", msg: "You cry together." }
+                    ]}
+                ]
+            },
+            "construction": {
+                desc: "CONSTRUCTION SITE. Steel beams hanging over the abyss.",
+                color: "#451a03",
+                targets: [
+                    { name: "CRANE", x: "50%", y: "30%", options: [
+                        { txt: "CLIMB", type: "move", next: "rooftop", msg: "You ride the hook to the very top!" },
+                        { txt: "BARK AT WORKERS", type: "action", msg: "There are no workers left, puppy." },
+                        { txt: "FALL", type: "danger", damage: 20, msg: "A small slip. Ouch." },
+                        { txt: "FIND TOOL", type: "action", item: "Hammer", msg: "Why do you have a hammer?" }
+                    ]}
+                ]
+            },
+            "rooftop": {
+                desc: "THE ROOFTOP. A helicopter is idling. The Alpha Cat stands in your way.",
+                color: "#7f1d1d",
+                targets: [
+                    { name: "ALPHA CAT", x: "50%", y: "40%", options: [
+                        { txt: "MEGA BARK", type: "move", next: "beach", msg: "The cat is blown off the roof by your power!" },
+                        { txt: "BITE", type: "danger", damage: 40, msg: "A bloody battle on the helipad!" },
+                        { txt: "GIVE RING", type: "action", req: "Ring", msg: "The cat takes the shiny and leaves. Weird." },
+                        { txt: "USE SQUEAKY", type: "action", req: "Squeaky", msg: "The cat is distracted by the noise!" }
+                    ]}
+                ]
+            },
+            "beach": {
+                desc: "THE END: THE BEACH. The ocean is blue. You are the Best Boy.",
+                color: "#1e3a8a",
+                targets: [
+                    { name: "THE SUNSET", x: "50%", y: "40%", options: [
+                        { txt: "YOU WIN", type: "move", next: "win", msg: "Credits roll..." }
+                    ]}
+                ]
+            }
         };
 
         function render() {
-            const scene = scenes[state.location];
-            document.getElementById('stage').style.background = scene.color || "#000";
-            document.getElementById('narrator').innerText = scene.text;
-            document.getElementById('health-val').innerText = state.hp;
-            document.getElementById('inventory-val').innerText = state.inventory.join(", ") || "EMPTY";
+            const scene = world[gameState.currentLoc];
+            if (!scene) {
+                document.getElementById('victory').style.display = 'flex';
+                return;
+            }
+
+            elements.stage.style.background = scene.bg;
+            elements.narrator.innerText = scene.desc;
+            elements.health.innerText = gameState.hp;
+            elements.inv.innerText = gameState.inventory.join(", ") || "EMPTY";
             
-            const layer = document.getElementById('hotspot-layer');
+            // Set Karma Text
+            const karmaDisp = document.getElementById('karma-display');
+            if(gameState.karma > 20) karmaDisp.innerText = "HOLY DOG";
+            else if(gameState.karma < -20) karmaDisp.innerText = "DEVIL DOG";
+            else karmaDisp.innerText = "GOOD BOY";
+
+            const layer = elements.itemsContainer;
             layer.innerHTML = "";
-            scene.items.forEach(item => {
-                const div = document.createElement('div');
-                div.className = "hotspot";
-                div.style.left = item.x;
-                div.style.top = item.y;
-                div.onclick = () => showActions(item);
-                layer.appendChild(div);
-            });
-            document.getElementById('button-grid').innerHTML = "";
-        }
-        
-        // This is a simplified render; the real logic is in the button clicks below
-        function render() {
-            const scene = scenes[state.location];
-            document.getElementById('stage').style.background = scene.color || scene.bg;
-            document.getElementById('narrator').innerText = scene.text;
-            document.getElementById('health-val').innerText = state.hp;
-            document.getElementById('inventory-val').innerText = state.inventory.join(", ") || "EMPTY";
-            
-            const layer = document.getElementById('items-container');
-            layer.innerHTML = "";
-            scene.items.forEach(item => {
+            scene.targets.forEach(item => {
                 const div = document.createElement('div');
                 div.className = "interactable";
                 div.style.left = item.x;
                 div.style.top = item.y;
-                div.innerText = item.icon;
+                div.innerText = item.name;
                 div.onclick = () => showActions(item);
                 layer.appendChild(div);
             });
-            document.getElementById('button-grid').innerHTML = "";
+            elements.buttons.innerHTML = "";
         }
 
         function showActions(item) {
-            document.getElementById('narrator').innerText = "TARGET: " + item.name;
-            const grid = document.getElementById('button-grid');
+            elements.narrator.innerHTML = `TARGET ACQUIRED: <span class="highlight">${item.name}</span>`;
+            const grid = elements.buttons;
             grid.innerHTML = "";
             item.options.forEach(opt => {
                 const b = document.createElement('button');
-                b.className = "btn " + (opt.type ? "btn-" + opt.type : "btn-action");
-                b.innerText = opt.text;
+                b.className = "btn " + (opt.type ? "btn-" + opt.type : "");
+                b.innerText = opt.txt;
                 b.onclick = () => {
+                    if(opt.req && !gameState.inventory.includes(opt.req)) {
+                        elements.narrator.innerText = "MISSING ITEM: " + opt.req;
+                        return;
+                    }
                     if(opt.damage) { 
-                        state.hp -= opt.damage;
+                        gameState.hp -= opt.damage;
                         triggerShake();
                     }
-                    if(opt.health) state.hp += opt.health;
-                    if(opt.item) state.inventory.push(opt.item);
-                    if(opt.next) state.location = opt.next;
-                    document.getElementById('narrator').innerText = opt.msg;
-                    setTimeout(render, 1500);
+                    if(act = opt.heal) gameState.hp += opt.heal;
+                    if(opt.karma) gameState.karma += opt.karma;
+                    if(opt.item) gameState.inventory.push(opt.item);
+                    
+                    elements.narrator.innerText = opt.msg;
+                    
+                    if(opt.next) {
+                        gameState.currentLoc = opt.next;
+                        setTimeout(render, 1500);
+                    } else {
+                        setTimeout(() => {
+                            elements.narrator.innerText = scene.desc;
+                            showActions(item);
+                        }, 1500);
+                    }
+                    updateHUD();
                 };
                 grid.appendChild(b);
             });
