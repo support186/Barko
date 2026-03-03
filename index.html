@@ -3,141 +3,176 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BARKOUR: Apocalypse</title>
+    <title>BARKOUR: The Living Park</title>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Space+Grotesk:wght@700;900&display=swap" rel="stylesheet">
     
     <style>
-        /* --- GLOBAL PUNK STYLES --- */
+        /* --- GLOBAL STYLES --- */
         body {
             margin: 0; padding: 0; height: 100vh; overflow: hidden;
             background-color: #111; display: flex; justify-content: center; align-items: center;
             font-family: 'Space Grotesk', sans-serif; touch-action: manipulation; user-select: none;
-            background-image: radial-gradient(#333 1px, transparent 1px);
-            background-size: 20px 20px; /* Cool halftone comic background */
         }
 
-        /* The Game Window - Heavy Comic Borders */
         #game-container {
             width: 100%; max-width: 600px; height: 100%; max-height: 900px; 
             display: flex; flex-direction: column; background: #000; 
-            border: 6px solid #fff; box-shadow: 10px 10px 0px #ff0055;
+            border: 4px solid #fff; box-shadow: 8px 8px 0px #ff0055;
             position: relative; overflow: hidden;
         }
 
-        /* Screen Shake Animation for Damage */
-        @keyframes shake {
-            0% { transform: translate(1px, 1px) rotate(0deg); }
-            10% { transform: translate(-1px, -2px) rotate(-1deg); }
-            20% { transform: translate(-3px, 0px) rotate(1deg); }
-            30% { transform: translate(3px, 2px) rotate(0deg); }
-            40% { transform: translate(1px, -1px) rotate(1deg); }
-            50% { transform: translate(-1px, 2px) rotate(-1deg); }
-            60% { transform: translate(-3px, 1px) rotate(0deg); }
-            70% { transform: translate(3px, 1px) rotate(-1deg); }
-            80% { transform: translate(-1px, -1px) rotate(1deg); }
-            90% { transform: translate(1px, 2px) rotate(0deg); }
-            100% { transform: translate(1px, -2px) rotate(-1deg); }
-        }
-        .taking-damage { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
-
-        /* --- 1. THE HUD (Gritty Yellow Banner) --- */
-        #hud {
-            height: 50px; background: #ffe600; display: flex;
-            justify-content: space-between; align-items: center;
-            padding: 0 20px; color: #000; font-size: 1.5rem; font-weight: 900;
-            border-bottom: 6px solid #fff; z-index: 50; text-transform: uppercase;
-        }
-
-        /* --- 2. THE STAGE (Comic Panels) --- */
+        /* --- THE STAGE (The Animated World) --- */
         #stage {
             flex-grow: 1; position: relative; overflow: hidden;
-            background: linear-gradient(45deg, #ff0055, #ffaa00);
-            border-bottom: 6px solid #fff; transition: background 0.3s;
+            background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 50%, #7CFC00 50%, #32CD32 100%);
+            border-bottom: 4px solid #fff;
         }
 
-        /* Sticker-Style Interactive Items */
-        .interactable {
-            position: absolute; font-family: 'Bangers', cursive; font-size: 2rem;
-            background: #fff; color: #000; border: 4px solid #000;
-            padding: 5px 15px; border-radius: 5px; cursor: pointer;
-            box-shadow: 6px 6px 0px rgba(0,0,0,1);
-            transform: translate(-50%, -50%) rotate(-3deg);
-            transition: all 0.1s; letter-spacing: 2px; text-transform: uppercase;
+        /* Ambient Animations */
+        #sun {
+            position: absolute; top: 10%; right: 10%; width: 80px; height: 80px;
+            background: #FFD700; border-radius: 50%; box-shadow: 0 0 40px #FFD700;
+            animation: pulse-sun 4s infinite alternate;
         }
-        .interactable:hover { transform: translate(-50%, -50%) rotate(2deg) scale(1.1); background: #00ffff; }
-        .interactable:active { transform: translate(-50%, -45%) scale(0.9); box-shadow: 0px 0px 0px #000; }
+        @keyframes pulse-sun { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
 
-        /* --- THE DOG (Comic Silhouette POV) --- */
+        #clouds {
+            position: absolute; top: 15%; left: -100px; width: 120px; height: 40px;
+            background: white; border-radius: 20px; opacity: 0.8;
+            animation: drift 20s linear infinite;
+        }
+        #clouds::before, #clouds::after {
+            content: ''; position: absolute; background: white; border-radius: 50%;
+        }
+        #clouds::before { width: 60px; height: 60px; top: -30px; left: 15px; }
+        #clouds::after { width: 50px; height: 50px; top: -20px; left: 60px; }
+
+        @keyframes drift { 0% { left: -150px; } 100% { left: 100%; } }
+
+        /* --- THE ACTORS (CSS Drawn Characters) --- */
+
+        /* 1. The Old Man on a Bench */
+        #old-man-container {
+            position: absolute; top: 40%; left: 20%;
+            cursor: pointer; z-index: 10;
+        }
+        #bench {
+            width: 120px; height: 20px; background: #8B4513; border: 2px solid #000;
+            position: absolute; top: 60px; border-radius: 5px;
+        }
+        #old-man {
+            position: relative; width: 50px; height: 70px;
+            animation: nod 3s infinite ease-in-out;
+        }
+        .om-head {
+            width: 30px; height: 30px; background: #FFDAB9; border: 2px solid #000;
+            border-radius: 50%; position: absolute; top: 0; left: 10px;
+        }
+        .om-body {
+            width: 40px; height: 40px; background: #4682B4; border: 2px solid #000;
+            border-radius: 10px 10px 0 0; position: absolute; top: 25px; left: 5px;
+        }
+        .om-cane {
+            width: 4px; height: 50px; background: #000; position: absolute;
+            top: 25px; left: 45px; transform: rotate(15deg);
+        }
+        @keyframes nod {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(5deg); }
+        }
+
+        /* 2. The Distracting Squirrel */
+        #squirrel {
+            position: absolute; top: 55%; left: -50px; width: 30px; height: 20px;
+            background: #A0522D; border: 2px solid #000; border-radius: 10px 15px 5px 5px;
+            z-index: 15; cursor: pointer;
+            animation: scurry 8s linear infinite;
+        }
+        #squirrel::after {
+            content: ''; position: absolute; right: -15px; top: -10px;
+            width: 20px; height: 25px; background: #A0522D; border: 2px solid #000;
+            border-radius: 50%; transform: rotate(45deg);
+        }
+        @keyframes scurry {
+            0% { left: -50px; transform: scaleX(1); }
+            45% { left: 110%; transform: scaleX(1); }
+            50% { left: 110%; transform: scaleX(-1); } /* Turn around */
+            95% { left: -50px; transform: scaleX(-1); }
+            100% { left: -50px; transform: scaleX(1); }
+        }
+
+        /* --- THE PLAYER (The Dog) --- */
         #dog-pov {
-            position: absolute; bottom: -20px; left: 50%;
-            transform: translateX(-50%); width: 160px; height: 180px; z-index: 100;
-            pointer-events: none;
+            position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%);
+            width: 140px; height: 160px; z-index: 100; pointer-events: none;
+            animation: breathe 2s infinite ease-in-out; /* Breathing animation */
+        }
+        @keyframes breathe {
+            0%, 100% { transform: translateX(-50%) scaleY(1); }
+            50% { transform: translateX(-50%) scaleY(1.02); }
         }
         .dog-body {
-            position: absolute; bottom: 0; left: 20px; width: 120px; height: 130px; 
-            background: #000; border-radius: 60px 60px 10px 10px; border: 6px solid #fff;
+            position: absolute; bottom: 0; left: 20px; width: 100px; height: 110px; 
+            background: #D2691E; border-radius: 50px 50px 10px 10px; border: 4px solid #000;
         }
         .dog-ears {
-            position: absolute; top: 15px; left: 10px; width: 140px;
+            position: absolute; top: 15px; left: 10px; width: 120px;
             display: flex; justify-content: space-between; z-index: 1;
         }
         .ear {
-            width: 40px; height: 60px; background: #000; border: 6px solid #fff;
+            width: 35px; height: 55px; background: #8B4513; border: 4px solid #000;
             border-radius: 50% 50% 10px 10px;
         }
         .dog-tail {
-            position: absolute; bottom: 80px; left: 65px; width: 30px; height: 90px; 
-            background: #000; border: 6px solid #fff; border-radius: 15px;
-            transform-origin: bottom center; animation: wag 0.1s infinite alternate linear; z-index: -1;
+            position: absolute; bottom: 70px; left: 55px; width: 20px; height: 80px; 
+            background: #D2691E; border: 4px solid #000; border-radius: 10px;
+            transform-origin: bottom center; animation: wag 0.15s infinite alternate linear; z-index: -1;
         }
-        @keyframes wag { 0% { transform: rotate(-30deg); } 100% { transform: rotate(30deg); } }
+        @keyframes wag { 0% { transform: rotate(-35deg); } 100% { transform: rotate(35deg); } }
 
-        /* --- 3. THE CONTROL PANEL (Action Layout) --- */
+
+        /* --- UI & CONTROLS (Punk Style) --- */
+        #hud {
+            height: 40px; background: #ffe600; display: flex;
+            justify-content: space-between; align-items: center;
+            padding: 0 15px; color: #000; font-size: 1.2rem; font-weight: 900;
+            border-bottom: 4px solid #fff; z-index: 50; text-transform: uppercase;
+        }
+
         #controls {
-            background: #111; padding: 20px; display: flex; flex-direction: column; gap: 15px;
-            z-index: 10; position: relative; height: 260px;
+            background: #111; padding: 15px; display: flex; flex-direction: column; gap: 10px;
+            z-index: 10; position: relative; height: 220px;
         }
 
         #narrator {
-            background: #000; color: #fff; padding: 15px; border: 4px solid #fff;
-            font-size: 1.2rem; font-weight: 700; line-height: 1.4;
-            min-height: 60px; box-shadow: 4px 4px 0px #00ffff;
+            background: #000; color: #fff; padding: 10px; border: 3px solid #fff;
+            font-size: 1.1rem; font-weight: 700; line-height: 1.3;
+            min-height: 50px; box-shadow: 3px 3px 0px #00ffff;
         }
-        .highlight { color: #ffe600; font-family: 'Bangers', cursive; font-size: 1.6rem; letter-spacing: 1px; }
+        .highlight { color: #ffe600; font-family: 'Bangers', cursive; font-size: 1.4rem; letter-spacing: 1px; }
 
-        #button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        #button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-        /* Edgy Comic Buttons */
         .btn {
-            background: #fff; color: #000; border: 4px solid #000;
-            font-family: 'Bangers', cursive; font-size: 1.8rem; letter-spacing: 2px;
-            cursor: pointer; padding: 12px 10px; transition: all 0.1s;
-            box-shadow: 6px 6px 0px #000; text-transform: uppercase;
+            background: #fff; color: #000; border: 3px solid #000;
+            font-family: 'Bangers', cursive; font-size: 1.5rem; letter-spacing: 1px;
+            cursor: pointer; padding: 10px 5px; transition: all 0.1s;
+            box-shadow: 4px 4px 0px #000; text-transform: uppercase;
         }
-        .btn:active { transform: translate(4px, 4px); box-shadow: 0px 0px 0px #000; }
+        .btn:active { transform: translate(3px, 3px); box-shadow: 0px 0px 0px #000; }
+        
+        .btn-action { background: #00ffff; } 
+        .btn-danger { background: #ff0055; color: white; } 
 
-        /* Punk Colors for different actions */
-        .btn-action { background: #00ffff; } /* Cyan */
-        .btn-move { background: #00ff00; }   /* Toxic Green */
-        .btn-danger { background: #ff0055; color: white; } /* Neon Pink/Red */
-        .btn-back { background: #888; color: white; }
+        /* Label for interactables */
+        .label {
+            position: absolute; top: -25px; left: 50%; transform: translateX(-50%);
+            background: white; border: 2px solid black; padding: 2px 5px;
+            font-family: 'Bangers', cursive; font-size: 1rem; white-space: nowrap;
+            opacity: 0; transition: opacity 0.2s; pointer-events: none;
+        }
+        #old-man-container:hover .label, #squirrel:hover .label { opacity: 1; }
 
-        /* Game Over Screen - Brutal Style */
-        #game-over {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 999; display: none;
-            flex-direction: column; justify-content: center; align-items: center; text-align: center;
-        }
-        #game-over h1 { 
-            color: #ff0055; font-family: 'Bangers', cursive; font-size: 6rem; 
-            margin-bottom: 0; text-shadow: 5px 5px 0 #fff; transform: rotate(-5deg);
-        }
-        #game-over p { color: #fff; font-size: 1.5rem; font-weight: bold; margin-bottom: 40px; }
-
-        @media (min-width: 601px) {
-            body { padding: 20px; }
-            #game-container { border-radius: 10px; height: 90vh; }
-        }
     </style>
 </head>
 <body>
@@ -150,7 +185,23 @@
         </div>
 
         <div id="stage">
-            <div id="items-container"></div>
+            <div id="sun"></div>
+            <div id="clouds"></div>
+
+            <div id="old-man-container" onclick="interact('oldman')">
+                <div class="label">OLD MAN</div>
+                <div id="bench"></div>
+                <div id="old-man">
+                    <div class="om-head"></div>
+                    <div class="om-body"></div>
+                    <div class="om-cane"></div>
+                </div>
+            </div>
+
+            <div id="squirrel" onclick="interact('squirrel')">
+                <div class="label" style="top: -35px;">SQUIRREL!</div>
+            </div>
+
             <div id="dog-pov">
                 <div class="dog-tail"></div>
                 <div class="dog-ears">
@@ -162,229 +213,36 @@
         </div>
 
         <div id="controls">
-            <div id="narrator">Loading the Apocalypse...</div>
-            <div id="button-grid"></div>
-        </div>
-
-        <div id="game-over">
-            <h1>WASTED</h1>
-            <p>You were a very bad boy.</p>
-            <button class="btn btn-action" style="padding: 15px 40px;" onclick="startGame()">TRY AGAIN</button>
+            <div id="narrator"><span class="highlight">THE PARK:</span> The sun is shining. The clouds are moving. You smell trouble.</div>
+            <div id="button-grid">
+                <button class="btn btn-action" onclick="sniff()">🐾 SNIFF AIR</button>
+                <button class="btn btn-action" onclick="bark()">🗣️ BARK</button>
+            </div>
         </div>
 
     </div>
 
     <script>
-        // --- THE COMIC BOOK STATE MACHINE ---
+        const narrator = document.getElementById('narrator');
         
-        const worldData = {
-            "home": {
-                bg: "radial-gradient(circle, #00ffff 0%, #0055ff 100%)", // Cyberpunk Blue
-                introText: "You are Home. The air smells like stale kibble and absolute safety.",
-                items: [
-                    {
-                        name: "Front Door", icon: "🚪 THE DOOR", x: "30%", y: "30%",
-                        actions: [
-                            { label: "Scratch", type: "move", result: "The human opens the door. You run out!", targetScene: "park" },
-                            { label: "Bite Knob", type: "danger", result: "You chip a tooth.", damage: 10 },
-                            { label: "Pee on Mat", type: "action", result: "Territory secured. The human sighs loudly." }
-                        ]
-                    },
-                    {
-                        name: "Roomba", icon: "🤖 EVIL ROBOT", x: "70%", y: "60%",
-                        actions: [
-                            { label: "Bark", type: "action", result: "It wakes up and starts cleaning in terror." },
-                            { label: "Ride", type: "action", result: "You surf the robot across the living room." }
-                        ]
-                    }
-                ]
-            },
-            "park": {
-                bg: "radial-gradient(circle, #00ff00 0%, #005500 100%)", // Toxic Green
-                introText: "The Park. The smell of squirrels and ancient rivalries fills your nose.",
-                items: [
-                    {
-                        name: "Old Couple", icon: "👴 OLD FLESH", x: "25%", y: "45%",
-                        actions: [
-                            { label: "Bark Loudly", type: "danger", result: "Heart attack! Animal control arrives. You go to Jail.", targetScene: "pound" },
-                            { label: "Be Cute", type: "action", result: "They pet you! You steal their house keys.", giveItem: "KEYS" },
-                            { label: "Hump Leg", type: "danger", result: "You get pepper-sprayed!", damage: 20 }
-                        ]
-                    },
-                    {
-                        name: "Big Tree", icon: "🌳 TALL WOOD", x: "75%", y: "30%",
-                        actions: [
-                            { label: "Sniff", type: "action", result: "Smells like a Golden Retriever was here." },
-                            { label: "Dig", type: "action", result: "You found a buried diamond ring!", giveItem: "RING" }
-                        ]
-                    },
-                    {
-                        name: "Stranger's House", icon: "🏡 WEIRD HOUSE", x: "80%", y: "70%",
-                        actions: [
-                            { label: "Enter Door", type: "move", result: "You approach the mysterious house...", targetScene: "strangerHouse", requireItem: "KEYS" }
-                        ]
-                    }
-                ]
-            },
-            "pound": {
-                bg: "linear-gradient(to bottom, #555 0%, #111 100%)", // Gritty dark gray
-                introText: "The Pound. Cold cages. Despair. You must escape.",
-                items: [
-                    {
-                        name: "Sleeping Guard", icon: "👮 THE COP", x: "50%", y: "40%",
-                        actions: [
-                            { label: "Lick Face", type: "action", result: "He wakes up, pets you, and sleeps." },
-                            { label: "Bite Crotch", type: "danger", result: "BAM! He drops his keys and runs. You are free!", targetScene: "park" }
-                        ]
-                    },
-                    {
-                        name: "Rabid Pitbull", icon: "🐺 ANGRY DOG", x: "25%", y: "60%",
-                        actions: [
-                            { label: "Growl", type: "action", result: "He whimpers. You are the Alpha now." }
-                        ]
-                    }
-                ]
-            },
-            "strangerHouse": {
-                bg: "radial-gradient(circle, #ff0055 0%, #550011 100%)", // Neon Pink/Red
-                introText: "You used the stolen keys. It's fancy. Very pee-able.",
-                items: [
-                    {
-                        name: "Persian Rug", icon: "🖧 EXPENSIVE RUG", x: "50%", y: "70%",
-                        actions: [
-                            { label: "Vomit", type: "action", result: "You ruin the $10,000 rug. You feel amazing.", heal: 20 },
-                            { label: "Sleep", type: "action", result: "Very soft.", heal: 10 }
-                        ]
-                    },
-                    {
-                        name: "Back Window", icon: "🪟 ESCAPE HATCH", x: "80%", y: "30%",
-                        actions: [
-                            { label: "Jump Out", type: "move", result: "You escape into the back alley.", targetScene: "alley" }
-                        ]
-                    }
-                ]
-            },
-            "alley": {
-                bg: "linear-gradient(45deg, #222, #444)", // Dark Alley
-                introText: "A dark alleyway. Smells like garbage and opportunity.",
-                items: [
-                    {
-                        name: "Dead Skunk", icon: "🦨 SMELLY BOI", x: "40%", y: "60%",
-                        actions: [
-                            { label: "Roll in it", type: "action", result: "You smell horrific. You are invincible." }
-                        ]
-                    },
-                    {
-                        name: "Go to Park", icon: "🛣️ RUN AWAY", x: "70%", y: "40%",
-                        actions: [
-                            { label: "Waddle Away", type: "move", result: "You head back to the park.", targetScene: "park" }
-                        ]
-                    }
-                ]
-            }
-        };
-
-        // --- THE ENGINE ---
-        let health = 100;
-        let inventory = [];
-        let currentSceneId = "home";
-
-        const elements = {
-            stage: document.getElementById('stage'),
-            itemsContainer: document.getElementById('items-container'),
-            narrator: document.getElementById('narrator'),
-            buttons: document.getElementById('button-grid'),
-            health: document.getElementById('health-val'),
-            inv: document.getElementById('inventory-val'),
-            gameOver: document.getElementById('game-over'),
-            gameContainer: document.getElementById('game-container')
-        };
-
-        function startGame() {
-            health = 100; inventory = []; currentSceneId = "home";
-            elements.gameOver.style.display = "none";
-            updateHUD(); loadScene(currentSceneId);
+        function sniff() {
+            narrator.innerHTML = "You sniff the air. It smells like freshly cut grass and impending chaos.";
         }
 
-        function updateHUD() {
-            elements.health.innerText = health;
-            elements.inv.innerText = inventory.length > 0 ? inventory.join(', ') : "EMPTY";
-            if (health <= 0) elements.gameOver.style.display = "flex";
+        function bark() {
+            narrator.innerHTML = "WOOF! A bird flies away in terror.";
+            // Add a quick tail wag boost
+            document.querySelector('.dog-tail').style.animationDuration = "0.05s";
+            setTimeout(() => { document.querySelector('.dog-tail').style.animationDuration = "0.1s"; }, 1000);
         }
 
-        function triggerShake() {
-            elements.gameContainer.classList.remove("taking-damage");
-            void elements.gameContainer.offsetWidth; // trigger reflow
-            elements.gameContainer.classList.add("taking-damage");
-        }
-
-        function loadScene(sceneId) {
-            currentSceneId = sceneId;
-            const scene = worldData[sceneId];
-            
-            elements.stage.style.background = scene.bg;
-            elements.narrator.innerHTML = `<span class="highlight">SCENE:</span> ${scene.introText}`;
-            elements.itemsContainer.innerHTML = ''; 
-
-            scene.items.forEach((item) => {
-                const sprite = document.createElement('div');
-                sprite.className = 'interactable';
-                sprite.innerText = item.icon;
-                sprite.style.left = item.x; 
-                sprite.style.top = item.y;
-                sprite.onclick = () => focusItem(item);
-                elements.itemsContainer.appendChild(sprite);
-            });
-
-            elements.buttons.innerHTML = `
-                <button class="btn btn-action" onclick="loadScene('${sceneId}')">🐾 SNIFF</button>
-                <button class="btn btn-action" onclick="loadScene('${sceneId}')">🐕 SCRATCH</button>
-            `;
-        }
-
-        function focusItem(item) {
-            elements.narrator.innerHTML = `You walk up to: <span class="highlight">${item.name}</span>.`;
-            elements.buttons.innerHTML = '';
-
-            item.actions.forEach(act => {
-                const btn = document.createElement('button');
-                btn.className = `btn btn-${act.type}`;
-                btn.innerText = act.label;
-                btn.onclick = () => executeAction(act);
-                elements.buttons.appendChild(btn);
-            });
-            
-            const backBtn = document.createElement('button');
-            backBtn.className = 'btn btn-back'; backBtn.innerText = '✖ BACK';
-            backBtn.onclick = () => loadScene(currentSceneId);
-            elements.buttons.appendChild(backBtn);
-        }
-
-        function executeAction(act) {
-            if (act.requireItem && !inventory.includes(act.requireItem)) {
-                elements.narrator.innerHTML = `Locked! You need: <span class="highlight">${act.requireItem}</span>!`;
-                return;
-            }
-
-            elements.narrator.innerHTML = act.result;
-
-            if (act.damage) {
-                health -= act.damage;
-                triggerShake(); // Add Game Juice!
-            }
-            if (act.heal) { health += act.heal; if(health>100) health=100; }
-            if (act.giveItem && !inventory.includes(act.giveItem)) inventory.push(act.giveItem);
-            
-            updateHUD();
-
-            if (health > 0 && act.targetScene) {
-                elements.buttons.innerHTML = ''; 
-                setTimeout(() => loadScene(act.targetScene), 2000); 
+        function interact(target) {
+            if(target === 'oldman') {
+                narrator.innerHTML = "You approach the <span class="highlight">OLD MAN</span>. He smells like butterscotch. He nods slowly.";
+            } else if (target === 'squirrel') {
+                narrator.innerHTML = "You chase the <span class="highlight">SQUIRREL</span>! It's too fast, but you feel alive.";
             }
         }
-
-        startGame();
-
     </script>
 </body>
 </html>
