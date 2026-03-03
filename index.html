@@ -3,189 +3,249 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Atmospheric Descent</title>
+    <title>THE FALL: GENESIS OVERDRIVE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Space+Grotesk:wght@900&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', Courier, monospace; touch-action: none; }
-        canvas { display: block; }
-        #ui { position: absolute; top: 20px; left: 20px; color: white; pointer-events: none; text-shadow: 2px 2px 4px #000; }
-        #reboot-btn { position: absolute; bottom: 20px; right: 20px; padding: 10px 20px; background: rgba(255,255,255,0.2); color: white; border: 1px solid white; cursor: pointer; pointer-events: auto; }
+        :root { --danger: #ff0055; --accent: #00ffff; }
+        body { margin: 0; padding: 0; overflow: hidden; background: #000; font-family: 'Space Grotesk', sans-serif; display: flex; justify-content: center; touch-action: none; }
+        #game-wrap { width: 100vw; height: 100vh; max-width: 500px; position: relative; background: #111; border-left: 8px solid #fff; border-right: 8px solid #fff; overflow: hidden; }
+        canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
+        #ui { position: absolute; top: 0; left: 0; width: 100%; padding: 15px; box-sizing: border-box; display: flex; justify-content: space-between; pointer-events: none; z-index: 100; font-family: 'Bangers', cursive; }
+        .stat { color: #fff; font-size: 1.8rem; text-shadow: 3px 3px 0 #000; }
+        #death-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 6px solid var(--danger); padding: 30px; display: none; flex-direction: column; align-items: center; z-index: 200; width: 85%; box-shadow: 0 0 50px rgba(255,0,85,0.6); }
+        .btn-retry { background: #4ade80; color: #000; width: 100%; font-size: 2.5rem; padding: 15px; margin-top: 20px; border: 5px solid #000; cursor: pointer; font-family: 'Bangers'; text-transform: uppercase; }
     </style>
 </head>
 <body>
+    <div id="game-wrap">
+        <div id="ui">
+            <div class="stat">PTS: <span id="score-val">0</span></div>
+            <div id="lvl-ui" class="stat" style="color:var(--danger)">CATHEDRAL</div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+        <div id="death-screen">
+            <h2 style="color:#fff; font-family:'Bangers'; font-size:4rem; margin:0;">WASTED</h2>
+            <p id="final-score" style="color:var(--accent); font-size: 1.8rem; margin: 10px; font-family: 'Bangers';"></p>
+            <button class="btn-retry" onclick="init()">REBOOT</button>
+        </div>
+    </div>
 
-<div id="ui">
-    <div id="floor-name">LOADING...</div>
-    <div id="score">FLOOR: 0</div>
-</div>
-<button id="reboot-btn" onclick="resetGame()">REBOOT SYSTEM</button>
-<canvas id="gameCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score-val');
+        const lvlEl = document.getElementById('lvl-ui');
+        const deathScreen = document.getElementById('death-screen');
 
-<script>
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const floorNameUI = document.getElementById('floor-name');
-const scoreUI = document.getElementById('score');
-
-// --- GAME CONFIG ---
-let width, height;
-let player = { x: 0, y: 100, r: 15, targetX: 0, speed: 0.15 };
-let platforms = [];
-let frame = 0;
-let gameSpeed = 3; // Faster start
-let currentFloor = 0;
-let gameOver = false;
-
-const THEMES = [
-    { name: "01: OVERGROWN LAB", bg: "#0a120a", accent: "#4ade80", decor: "vines", particles: "fog" },
-    { name: "02: INDUSTRIAL STEAM", bg: "#1a110a", accent: "#fb923c", decor: "chains", particles: "steam" },
-    { name: "03: VOID LIBRARY", bg: "#0f172a", accent: "#818cf8", decor: "banners", particles: "dust" },
-    { name: "04: CYBER BASEMENT", bg: "#020617", accent: "#22d3ee", decor: "cables", particles: "glitch" },
-    { name: "05: SUBMERGED ENGINE", bg: "#064e3b", accent: "#34d399", decor: "hoses", particles: "bubbles" },
-    { name: "06: VICTORIAN CLOCK", bg: "#2d1b09", accent: "#facc15", decor: "gears", particles: "gold" },
-    { name: "07: BIOLUMINESCENT HIVE", bg: "#2e1065", accent: "#d946ef", decor: "pods", particles: "spores" },
-    { name: "08: DATA GRAVEYARD", bg: "#000000", accent: "#ffffff", decor: "code", particles: "noise" },
-    { name: "09: ALCHEMIST SOLARIUM", bg: "#f8fafc", accent: "#38bdf8", decor: "prisms", particles: "petals" },
-    { name: "10: THE CORE", bg: "#450a0a", accent: "#f87171", decor: "rebar", particles: "embers" }
-];
-
-function init() {
-    width = canvas.width = window.innerWidth;
-    height = canvas.height = window.innerHeight;
-    player.x = width / 2;
-    player.targetX = player.x;
-    resetGame();
-}
-
-function resetGame() {
-    platforms = [];
-    currentFloor = 0;
-    gameSpeed = 4;
-    gameOver = false;
-    // Initial platforms
-    for(let i=0; i<6; i++) {
-        addPlatform(200 * i + 300);
-    }
-}
-
-function addPlatform(y) {
-    const themeIdx = Math.floor(currentFloor / 5) % THEMES.length;
-    const holeWidth = 80 - (Math.min(currentFloor, 20)); // Holes get smaller
-    platforms.push({
-        y: y,
-        holeX: Math.random() * (width - holeWidth),
-        holeW: holeWidth,
-        theme: THEMES[themeIdx],
-        passed: false,
-        seed: Math.random() * 100 // For unique hanging decor
-    });
-}
-
-// --- INPUT HANDLING (MOBILE + DESKTOP) ---
-window.addEventListener('mousemove', e => player.targetX = e.clientX);
-window.addEventListener('touchmove', e => {
-    e.preventDefault();
-    player.targetX = e.touches[0].clientX;
-}, { passive: false });
-
-function update() {
-    if (gameOver) return;
-
-    // Smooth movement
-    player.x += (player.targetX - player.x) * player.speed;
-
-    // Move platforms up
-    platforms.forEach(p => {
-        p.y -= gameSpeed;
-    });
-
-    // Collision & Scoring
-    if (platforms.length > 0) {
-        let p = platforms[0];
+        let width, height, player, platforms, particles, decors, score, floorsPassed, gameActive, keys, deathTimer, currentTheme, loopId;
         
-        // If player is at the platform's Y level
-        if (Math.abs(player.y - p.y) < 10) {
-            const inHole = player.x > p.holeX && player.x < p.holeX + p.holeW;
-            if (!inHole) {
-                // Hit the floor (Ceiling of the one below)
-                player.y = p.y - 15; // Push player up
-                if (player.y < 0) gameOver = true; // Crushed!
-            } else if (!p.passed) {
-                p.passed = true;
-                currentFloor++;
-                gameSpeed += 0.05; // Natural acceleration
+        // 15% Faster starting speed (3.2 -> 3.7)
+        const START_SPEED = 3.7; 
+        const START_GAP = 360;
+        let scrollSpeed = START_SPEED;
+        let platformGap = START_GAP;
+        let bgScroll = 0;
+
+        const THEMES = [
+            { name: "CATHEDRAL", bg: "#0d0d0d", wall: "#222", spike: "#ff0055", type: "stone", items: ["CHANDELIER", "BANNER", "CHAIN"] },
+            { name: "RAVE HOUSE", bg: "#000", wall: "#111", spike: "#0f0", type: "grid", items: ["WIRES", "FAN", "LED"] },
+            { name: "NEON LAB", bg: "#05001a", wall: "#0a0033", spike: "#0ff", type: "circuit", items: ["MONITOR", "HOSE", "SENSOR"] },
+            { name: "DUNGEON", bg: "#1a0f00", wall: "#2b1b00", spike: "#ff8000", type: "moss", items: ["CAGE", "HOOK", "STALACTITE"] },
+            { name: "GRAVEYARD", bg: "#050805", wall: "#0a0f0a", spike: "#0ff", type: "mist", items: ["ROOT", "MOSS", "BRANCH"] }
+        ];
+
+        function resize() {
+            width = canvas.width = Math.min(window.innerWidth, 500);
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // GLOBAL POINTER TRACKING (Fixes Mobile Dragging)
+        window.addEventListener('keydown', e => { keys[e.code] = true; if(e.code === 'Space' && !gameActive) init(); });
+        window.addEventListener('keyup', e => { keys[e.code] = false; });
+        
+        const handleInput = (clientX) => {
+            if(!gameActive) return;
+            const rect = canvas.getBoundingClientRect();
+            player.targetX = (clientX - rect.left) * (width / rect.width);
+        };
+
+        canvas.addEventListener('touchstart', e => handleInput(e.touches[0].clientX), {passive:false});
+        canvas.addEventListener('touchmove', e => { handleInput(e.touches[0].clientX); e.preventDefault(); }, {passive:false});
+        canvas.addEventListener('mousedown', e => handleInput(e.clientX));
+        canvas.addEventListener('mousemove', e => { if(e.buttons > 0) handleInput(e.clientX); });
+
+        function createDecor(y) {
+            decors.push({
+                x: Math.random() * (width - 100) + 50,
+                y,
+                type: currentTheme.items[Math.floor(Math.random() * currentTheme.items.length)],
+                size: Math.random() * 40 + 60,
+                parallax: 0.6 + Math.random() * 0.4
+            });
+        }
+
+        function init() {
+            if (loopId) cancelAnimationFrame(loopId);
+            gameActive = true; score = 0; floorsPassed = 0; deathTimer = 0; 
+            scrollSpeed = START_SPEED; platformGap = START_GAP;
+            currentTheme = THEMES[0];
+            player = { x: width/2, targetX: width/2, y: -80, targetY: height/2.5, state: 'intro' };
+            platforms = []; particles = []; decors = []; keys = {}; 
+            scoreEl.innerText = "0";
+            lvlEl.innerText = currentTheme.name;
+            lvlEl.style.color = currentTheme.spike;
+
+            // RANDOMIZED GAPS ON START
+            for(let i=0; i<8; i++) {
+                let y = height + i * platformGap;
+                platforms.push({ y, gapX: Math.random()*(width-160)+20, gapWidth: 140, scored: false });
+                createDecor(y - 180);
+            }
+            deathScreen.style.display = 'none';
+            update();
+        }
+
+        function switchHouse() {
+            let idx = Math.floor(floorsPassed / 10) % THEMES.length;
+            if (currentTheme.name !== THEMES[idx].name) {
+                currentTheme = THEMES[idx];
+                lvlEl.innerText = currentTheme.name;
+                lvlEl.style.color = currentTheme.spike;
             }
         }
-    }
 
-    // Cycle platforms
-    if (platforms[0].y < -20) {
-        platforms.shift();
-        addPlatform(platforms[platforms.length-1].y + 200);
-    }
-
-    // UI Update
-    const currentTheme = platforms[0].theme;
-    floorNameUI.innerText = currentTheme.name;
-    floorNameUI.style.color = currentTheme.accent;
-    scoreUI.innerText = `FLOOR: ${currentFloor}`;
-}
-
-function draw() {
-    const theme = platforms[0].theme;
-    ctx.fillStyle = theme.bg;
-    ctx.fillRect(0, 0, width, height);
-
-    // Draw Parallax Decor (Hanging stuff)
-    platforms.forEach(p => {
-        ctx.strokeStyle = p.theme.accent;
-        ctx.lineWidth = 2;
-        
-        // Draw the Floor/Ceiling
-        ctx.globalAlpha = 1.0;
-        ctx.beginPath();
-        ctx.moveTo(0, p.y);
-        ctx.lineTo(p.holeX, p.y);
-        ctx.moveTo(p.holeX + p.holeW, p.y);
-        ctx.lineTo(width, p.y);
-        ctx.stroke();
-
-        // Draw Hanging Decor (Atmosphere)
-        // Since this is the ceiling to the level below:
-        ctx.globalAlpha = 0.4;
-        let sway = Math.sin(frame * 0.02 + p.seed) * 15;
-        
-        ctx.beginPath();
-        // Visualizing "hanging stuff" every 100px
-        for(let i=0; i<width; i+=120) {
-            if(i < p.holeX || i > p.holeX + p.holeW) {
-                ctx.moveTo(i, p.y);
-                ctx.quadraticCurveTo(i + sway, p.y + 50, i + sway/2, p.y + 100);
+        function drawDecor(d) {
+            ctx.lineWidth = 3; ctx.strokeStyle = currentTheme.spike + "66";
+            ctx.save();
+            ctx.translate(d.x, d.y);
+            switch(d.type) {
+                case "CHANDELIER":
+                    ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(0, 0); ctx.stroke();
+                    ctx.beginPath(); ctx.arc(0, 10, 20, 0, Math.PI); ctx.stroke();
+                    ctx.fillStyle = "orange"; ctx.beginPath(); ctx.arc(-15, 5, 4, 0, 7); ctx.arc(15, 5, 4, 0, 7); ctx.fill();
+                    break;
+                case "BANNER":
+                    ctx.fillStyle = "#600"; ctx.fillRect(-20, -40, 40, 80);
+                    ctx.strokeStyle = "#400"; ctx.strokeRect(-20, -40, 40, 80);
+                    break;
+                case "WIRES":
+                    ctx.beginPath(); ctx.moveTo(-50, -20); ctx.bezierTo(-20, 40, 20, -40, 50, 20); ctx.stroke();
+                    break;
+                case "FAN":
+                    ctx.beginPath(); ctx.arc(0, 0, 25, 0, 7); ctx.stroke();
+                    ctx.save(); ctx.rotate(Date.now() * 0.01);
+                    ctx.moveTo(-20, 0); ctx.lineTo(20, 0); ctx.moveTo(0, -20); ctx.lineTo(0, 20); ctx.stroke();
+                    ctx.restore();
+                    break;
+                case "MONITOR":
+                    ctx.fillStyle = "#111"; ctx.fillRect(-25, -20, 50, 40);
+                    ctx.strokeStyle = currentTheme.spike; ctx.strokeRect(-25, -20, 50, 40);
+                    ctx.fillStyle = currentTheme.spike + "33"; ctx.fillRect(-20, -15, 40, 30);
+                    break;
+                case "CAGE":
+                    ctx.strokeRect(-20, -30, 40, 60);
+                    for(let i=-12; i<=12; i+=8) { ctx.moveTo(i, -30); ctx.lineTo(i, 30); } ctx.stroke();
+                    break;
+                case "ROOT":
+                    ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(-20, 0); ctx.lineTo(10, 40); ctx.stroke();
+                    break;
             }
+            ctx.restore();
         }
-        ctx.stroke();
-    });
 
-    // Draw Player
-    ctx.globalAlpha = 1.0;
-    ctx.fillStyle = "#fff";
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = "#fff";
-    ctx.beginPath();
-    ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
+        function update() {
+            if (!gameActive) {
+                deathTimer++;
+                if (deathTimer === 60) {
+                    document.getElementById('final-score').innerText = "PTS: " + score;
+                    deathScreen.style.display = 'flex';
+                }
+            }
+            if (player.state === 'intro') {
+                player.y += (player.targetY - player.y) * 0.05;
+                if (Math.abs(player.y - player.targetY) < 1) player.state = 'active';
+            }
+            if (gameActive) {
+                // Desktop Input Support
+                if (keys['ArrowLeft']) player.targetX -= 15;
+                if (keys['ArrowRight']) player.targetX += 15;
+                
+                player.x += (player.targetX - player.x) * 0.15;
+                player.x = Math.max(30, Math.min(width - 30, player.x));
+                
+                bgScroll = (bgScroll + scrollSpeed) % 100;
+                platforms.forEach(p => p.y -= scrollSpeed);
+                decors.forEach(d => d.y -= scrollSpeed);
 
-    frame++;
-    requestAnimationFrame(() => {
-        update();
-        draw();
-    });
-}
+                platforms.forEach(p => {
+                    if (player.y + 25 > p.y && player.y < p.y + 10) {
+                        if (player.x > p.gapX && player.x < p.gapX + p.gapWidth) {
+                            if (!p.scored) { p.scored = true; score += 10; floorsPassed++; scrollSpeed += 0.03; switchHouse(); }
+                        } else {
+                            gameActive = false; player.state = 'dead';
+                            for(let i=0; i<40; i++) particles.push({x: player.x, y: p.y, vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15, life: 1});
+                        }
+                    }
+                });
 
-window.addEventListener('resize', init);
-init();
-draw();
+                if (platforms[0].y < -200) {
+                    platforms.shift();
+                    platforms.push({ y: platforms[platforms.length-1].y + platformGap, gapX: Math.random()*(width-160)+20, gapWidth: 140, scored: false });
+                    if(Math.random() > 0.4) createDecor(height + 100);
+                }
+            }
+            draw();
+            loopId = requestAnimationFrame(update);
+        }
 
-</script>
+        function draw() {
+            // BACKGROUND RENDERING
+            ctx.fillStyle = currentTheme.bg; ctx.fillRect(0, 0, width, height);
+            
+            // Wall Textures
+            ctx.strokeStyle = "rgba(255,255,255,0.03)";
+            if(currentTheme.type === "stone") {
+                for(let i=0; i<height; i+=50) { ctx.strokeRect(0, i - (bgScroll%50), width, 50); }
+            } else if(currentTheme.type === "grid") {
+                for(let i=0; i<width; i+=40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, height); ctx.stroke(); }
+            }
+
+            decors.forEach(d => drawDecor(d));
+
+            platforms.forEach(p => {
+                ctx.fillStyle = "#000"; ctx.fillRect(0, p.y, p.gapX, 25);
+                ctx.fillRect(p.gapX + p.gapWidth, p.y, width, 25);
+                ctx.fillStyle = currentTheme.spike;
+                for(let i=0; i<width; i+=15) {
+                    if (i < p.gapX || i > p.gapX + p.gapWidth) {
+                        ctx.beginPath(); ctx.moveTo(i, p.y); ctx.lineTo(i+7, p.y-22); ctx.lineTo(i+14, p.y); ctx.fill();
+                    }
+                }
+            });
+
+            // PLAYER
+            ctx.save(); ctx.translate(player.x, player.y);
+            if (!gameActive) ctx.rotate(Math.PI / 1.7);
+            ctx.shadowBlur = 10; ctx.shadowColor = "#fff";
+            ctx.strokeStyle = gameActive ? "#fff" : "#f00"; ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.arc(0, -15, 8, 0, 7); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -7); ctx.lineTo(0, 15); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-15, 5); ctx.lineTo(15, 5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, 15); ctx.lineTo(-10, 30); ctx.moveTo(0, 15); ctx.lineTo(10, 30); ctx.stroke();
+            ctx.restore();
+
+            particles.forEach((p, i) => {
+                ctx.fillStyle = `rgba(200, 0, 0, ${p.life})`;
+                ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, 7); ctx.fill();
+                p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.life -= 0.02;
+                if (p.life <= 0) particles.splice(i, 1);
+            });
+            scoreEl.innerText = score;
+        }
+
+        init();
+    </script>
 </body>
 </html>
