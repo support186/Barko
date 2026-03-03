@@ -3,405 +3,368 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BARKOUR: THE COMPLETE APOCALYPSE</title>
-    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Space+Grotesk:wght@300;700;900&display=swap" rel="stylesheet">
+    <title>THE PUNK FALL - 2026</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Space+Grotesk:wght@900&display=swap" rel="stylesheet">
     <style>
-        /* BARKOUR ENGINE v3.0 - "THE MULTI-SCENE MEGA BUILD"
-           DESIGNED FOR: 2026 MOBILE & DESKTOP BROWSERS
-           STYLE: PUNK-COMIC / HIGH-CONTRAST
-        */
-
-        :root {
-            --accent: #ff0055;
-            --neon: #00ffff;
-            --yellow: #ffe600;
-            --bg-dark: #050505;
-            --white: #ffffff;
-            --panel-bg: rgba(10, 10, 10, 0.9);
+        :root { --danger: #ff0055; --accent: #00ffff; --bg: #222; }
+        body { 
+            margin: 0; padding: 0; overflow: hidden; background: #111; 
+            font-family: 'Space Grotesk', sans-serif; display: flex; justify-content: center; 
         }
-
-        * { box-sizing: border-box; outline: none; }
-
-        body {
-            margin: 0; padding: 0; height: 100vh; width: 100vw;
-            background-color: var(--bg-dark);
-            font-family: 'Space Grotesk', sans-serif;
-            display: flex; justify-content: center; align-items: center;
-            overflow: hidden; color: var(--white);
+        #game-wrap {
+            width: 100vw; height: 100vh; max-width: 500px; position: relative;
+            background: #444; /* Concrete Gray */
+            border-left: 6px solid #fff; border-right: 6px solid #fff;
+            box-shadow: 0 0 50px rgba(255, 0, 85, 0.4);
         }
-
-        /* Responsive Container */
-        #game-shell {
-            width: 100%; max-width: 600px; height: 100%;
-            border-left: 4px solid var(--white); border-right: 4px solid var(--white);
-            display: flex; flex-direction: column; position: relative;
-            background: #000; box-shadow: 0 0 100px rgba(255, 0, 85, 0.3);
-        }
-
-        /* --- UI: THE TOP HUD --- */
-        #top-bar {
-            height: 60px; background: var(--yellow); border-bottom: 5px solid #000;
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 0 20px; z-index: 100; color: #000;
-        }
-
-        .stat-box { font-family: 'Bangers'; font-size: 1.8rem; display: flex; align-items: center; gap: 8px; }
-        #karma-display { font-size: 1rem; font-family: 'Space Grotesk'; font-weight: 900; background: #000; color: #fff; padding: 2px 10px; border-radius: 5px; }
-
-        /* --- THE STAGE (ANIMATED WORLD) --- */
-        #stage {
-            flex-grow: 1; position: relative; overflow: hidden;
-            background: #222; border-bottom: 5px solid #fff;
-            transition: all 0.5s ease;
-        }
-
-        /* Dog Character - Fixed POV */
-        #dog-container {
-            position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%);
-            width: 180px; height: 200px; z-index: 80; pointer-events: none;
-            transition: all 0.3s ease;
-        }
-        .dog-body {
-            position: absolute; bottom: 0; left: 30px; width: 120px; height: 140px;
-            background: #000; border: 5px solid #fff; border-radius: 60px 60px 10px 10px;
-        }
-        .dog-head-wrap { position: absolute; top: 10px; left: 40px; width: 100px; height: 100px; transition: 0.2s; }
-        .dog-head { width: 100%; height: 100%; background: #000; border: 5px solid #fff; border-radius: 50%; }
-        .dog-tail {
-            position: absolute; bottom: 100px; left: 80px; width: 20px; height: 100px;
-            background: #000; border: 4px solid #fff; border-radius: 10px;
-            transform-origin: bottom center; animation: wag 0.3s infinite alternate ease-in-out;
-        }
-        @keyframes wag { from { transform: rotate(-25deg); } to { transform: rotate(25deg); } }
-
-        /* Interaction Hotspots */
-        .target {
-            position: absolute; transform: translate(-50%, -50%);
-            background: #fff; color: #000; font-family: 'Bangers';
-            padding: 8px 15px; border: 3px solid #000; cursor: pointer;
-            box-shadow: 5px 5px 0px var(--neon); z-index: 30;
-            transition: 0.2s; font-size: 1.2rem;
-        }
-        .target:hover { background: var(--neon); transform: translate(-50%, -50%) scale(1.1) rotate(2deg); }
-
-        /* --- CONTROL PANEL --- */
-        #ui-tray {
-            height: 280px; background: #111; padding: 15px;
-            display: flex; flex-direction: column; gap: 12px;
-        }
-
-        #text-box {
-            background: #000; border: 3px solid #fff; padding: 15px;
-            min-height: 80px; color: #fff; font-size: 1.1rem;
-            box-shadow: 5px 5px 0px var(--accent); overflow-y: auto;
-        }
-
-        #btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        canvas { display: block; width: 100%; height: 100%; }
         
-        .action-btn {
-            background: #fff; border: 3px solid #000; font-family: 'Bangers';
-            font-size: 1.4rem; padding: 10px; cursor: pointer; box-shadow: 4px 4px 0px #000;
+        #ui {
+            position: absolute; top: 0; left: 0; width: 100%; padding: 15px;
+            box-sizing: border-box; display: flex; justify-content: space-between;
+            pointer-events: none; z-index: 10; font-family: 'Bangers', cursive;
         }
-        .action-btn:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px #000; }
-        .type-move { background: var(--neon); }
-        .type-danger { background: var(--accent); color: #fff; }
-
-        /* Animations */
-        .shake { animation: shake 0.3s ease-in-out; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
-
-        /* Game Screens */
-        .overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 200; display: none; flex-direction: column;
-            justify-content: center; align-items: center; text-align: center; padding: 20px;
+        .stat { color: #fff; font-size: 1.5rem; text-shadow: 3px 3px 0 #000; letter-spacing: 2px; }
+        
+        /* Minimalist End Screen */
+        #death-screen {
+            position: absolute; bottom: 10%; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.85); border: 3px solid #fff; padding: 15px;
+            border-radius: 10px; display: none; flex-direction: column; align-items: center; z-index: 100;
+            width: 70%; box-shadow: 8px 8px 0 var(--danger);
         }
-        .overlay h1 { font-family: 'Bangers'; font-size: 5rem; color: var(--accent); margin: 0; }
+        #death-screen h2 { color: var(--danger); margin: 0; font-size: 2.5rem; font-family: 'Bangers'; text-transform: uppercase; }
+        
+        #leaderboard-entry { width: 100%; display: none; flex-direction: column; align-items: center; margin-bottom: 10px;}
+        input { padding: 8px; margin: 5px 0; border: 2px solid #fff; background: #000; color: #fff; width: 80%; font-size: 1rem; text-align: center; }
+        
+        .btn-retry { 
+            background: #fff; color: #000; width: 100%; 
+            font-size: 1.8rem; padding: 10px; margin-top: 5px;
+            border: 4px solid #000; font-weight: 900; 
+            cursor: pointer; font-family: 'Bangers'; text-transform: uppercase;
+        }
+        .btn-retry:active { transform: translate(3px, 3px); }
+        
+        button.small-btn { padding: 5px 10px; background: var(--accent); border: 2px solid #000; font-weight: 700; cursor: pointer; margin-top: 5px; font-family: 'Bangers'; }
     </style>
 </head>
 <body>
 
-    <div id="game-shell">
-        <div id="hud">
-            <div class="stat-box">❤️ <span id="hp-ui">100</span></div>
-            <div id="karma-display">GOOD BOY</div>
-            <div class="stat-box">🎒 <span id="inv-ui">0</span></div>
+    <div id="game-wrap">
+        <div id="ui">
+            <div class="stat">SCORE: <span id="score">0</span></div>
+            <div class="stat">BEST: <span id="best">0</span></div>
         </div>
 
-        <div id="stage">
-            <div id="actor-layer"></div>
-            <div id="dog-container">
-                <div class="dog-tail"></div>
-                <div class="dog-head-wrap" id="head-node">
-                    <div class="dog-ear-left"></div>
-                    <div class="dog-ear-right"></div>
-                    <div class="dog-head"></div>
-                </div>
-                <div class="dog-body"></div>
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="death-screen">
+            <h2>WASTED</h2>
+            <p id="final-score" style="color:#fff; font-size: 1.2rem; margin: 5px; font-family: 'Bangers';"></p>
+            
+            <div id="leaderboard-entry">
+                <input type="text" id="playerName" placeholder="TAG THE BOARD..." maxlength="12">
+                <button class="small-btn" onclick="submitScore()">SAVE TAG</button>
             </div>
-        </div>
 
-        <div id="ui-tray">
-            <div id="text-box">Waking up...</div>
-            <div id="btn-grid"></div>
-        </div>
-
-        <div id="game-over" class="overlay">
-            <h1>WASTED</h1>
-            <p>YOU WERE NOT THE GOODEST BOY.</p>
-            <button class="btn btn-move" onclick="location.reload()">REBOOT SYSTEM</button>
-        </div>
-
-        <div id="victory" class="overlay">
-            <h1 style="color: var(--neon)">LEGEND</h1>
-            <p>YOU FOUND THE BEACH. THE WORLD IS YOURS.</p>
-            <button class="btn btn-move" onclick="location.reload()">PLAY AGAIN</button>
+            <button class="btn-retry" onclick="init()">PLAY AGAIN</button>
         </div>
     </div>
 
     <script>
-        /* --- THE MEGA ENGINE --- */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const bestEl = document.getElementById('best');
+        const deathScreen = document.getElementById('death-screen');
+        const leaderboardSection = document.getElementById('leaderboard-entry');
 
-        let gameState = {
-            hp: 100,
-            karma: 0,
-            inventory: [],
-            currentLoc: 'apartment'
-        };
+        let width, height;
+        // True Falling: Start player higher up, add velocity y
+        let player = { x: 0, y: 50, vy: 0, r: 10, targetX: 0, state: 'falling' };
+        let platforms = [];
+        let particles = [];
+        let debris = [];
+        let score = 0;
+        let floorsPassed = 0;
+        let gameActive = true;
+        let gravity = 0.15;
+        let currentPlatformGap = 300; 
+        let keys = {};
+        let scores = JSON.parse(localStorage.getItem('fall_scores') || "[]");
+        let deathTimer = 0;
 
-        const world = {
-            "apartment": {
-                desc: "YOUR APARTMENT. The humans left weeks ago. The silence is loud.",
-                color: "#1e1b4b",
-                targets: [
-                    { name: "THE DOOR", x: "50%", y: "45%", options: [
-                        { txt: "SCRATCH EXIT", type: "move", next: "hallway", msg: "You claw through the wood. Freedom at last." },
-                        { txt: "WAIT FOR HUMAN", type: "action", msg: "You wait 4 hours. No one comes. You feel lonely." },
-                        { txt: "PEE ON RUG", type: "action", karma: -5, msg: "The rug is soaked. You are the king of this room now." },
-                        { txt: "FIND KIBBLE", type: "action", item: "Dry Kibble", heal: 10, msg: "You found a stray piece under the fridge! +10 HP" }
-                    ]},
-                    { name: "WINDOW", x: "80%", y: "30%", options: [
-                        { txt: "LOOK OUT", type: "action", msg: "The city below is covered in vines and smoke." },
-                        { txt: "HOWL", type: "action", msg: "AOOOOUUUUU! The city howls back." },
-                        { txt: "JUMP", type: "danger", damage: 100, msg: "It's a long way down..." },
-                        { txt: "WATCH BIRD", type: "action", karma: 5, msg: "You watch a pigeon. You decide not to bark at it. +5 Karma." }
-                    ]}
-                ]
-            },
-            "hallway": {
-                desc: "THE HALLWAY. Flickering lights. A heavy smell of wet fur.",
-                color: "#0f172a",
-                targets: [
-                    { name: "NEIGHBOR CAT", x: "60%", y: "50%", options: [
-                        { txt: "CHASE", type: "move", next: "elevator", karma: -10, msg: "You chase the cat into the elevator!" },
-                        { txt: "SNIFF", type: "action", msg: "Smells like expensive tuna and malice." },
-                        { txt: "HISS", type: "danger", damage: 10, msg: "The cat swipes! -10 HP" },
-                        { txt: "SHARE KIBBLE", type: "action", req: "Dry Kibble", karma: 20, msg: "The cat takes the food and lets you pass." }
-                    ]}
-                ]
-            },
-            "elevator": {
-                desc: "THE ELEVATOR. It's stuck between floors. The cables are creaking.",
-                color: "#334155",
-                targets: [
-                    { name: "CONTROL PANEL", x: "70%", y: "40%", options: [
-                        { txt: "BUTTON MASH", type: "move", next: "lobby", msg: "The elevator screams and drops to the lobby!" },
-                        { txt: "URINATE", type: "danger", damage: 5, msg: "Electricity sparks! Ouch. -5 HP" },
-                        { txt: "SLEEP", type: "action", heal: 5, msg: "You take a nap while stuck. +5 HP" },
-                        { txt: "FIND BONE", type: "action", item: "Old Bone", msg: "Someone dropped a treat here!" }
-                    ]}
-                ]
-            },
-            "lobby": {
-                desc: "THE LOBBY. Shattered glass everywhere. A zombie doorman is leaning on the desk.",
-                color: "#164e63",
-                targets: [
-                    { name: "DOORMAN", x: "30%", y: "50%", options: [
-                        { txt: "SNEAK", type: "move", next: "street", msg: "You slip past his rotting feet." },
-                        { txt: "BITE ANKLE", type: "danger", damage: 20, msg: "He groans and kicks you into the street!" },
-                        { txt: "WAG TAIL", type: "action", karma: 10, msg: "He smiles? Or his jaw just fell off. Hard to tell." },
-                        { txt: "BEG", type: "action", msg: "He has no treats. Only sadness." }
-                    ]}
-                ]
-            },
-            "street": {
-                desc: "MAIN STREET. Abandoned cars block the road. Pigeons rule the sky.",
-                color: "#1e3a8a",
-                targets: [
-                    { name: "HOTDOG CART", x: "50%", y: "70%", options: [
-                        { txt: "STEAL WIENER", type: "action", item: "Hotdog", heal: 20, msg: "JACKPOT! +20 HP" },
-                        { txt: "KNOCK OVER", type: "action", karma: -10, msg: "Mustard everywhere. You monster." },
-                        { txt: "FIND PARK", type: "move", next: "park", msg: "You smell grass in the distance." },
-                        { txt: "BARK AT BIRDS", type: "action", msg: "The pigeons mock you from the traffic lights." }
-                    ]}
-                ]
-            },
-            "park": {
-                desc: "THE PARK. Survivors are having a tense picnic.",
-                color: "#065f46",
-                targets: [
-                    { name: "SURVIVORS", x: "40%", y: "55%", options: [
-                        { txt: "STEAL HAM", type: "danger", damage: 15, item: "Honey Ham", msg: "You grab the ham but the dad hits you with a shoe!" },
-                        { txt: "BEG", type: "action", karma: 10, heal: 10, msg: "The child gives you a crust. +10 HP" },
-                        { txt: "PEE ON BASKET", type: "danger", karma: -20, damage: 10, msg: "They chase you out of the park!" },
-                        { txt: "FIND ALLEY", type: "move", next: "alley", msg: "You spot a dark path behind the trees." }
-                    ]}
-                ]
-            },
-            "alley": {
-                desc: "THE ALLEY. Neon signs flicker in the puddles.",
-                color: "#1e1b4b",
-                targets: [
-                    { name: "DUMPSTER", x: "50%", y: "50%", options: [
-                        { txt: "DIVE IN", type: "action", item: "Lab Keycard", msg: "You found a shiny card in the trash!" },
-                        { txt: "SNIFF", type: "action", msg: "Smells like 'Don't Open This'." },
-                        { txt: "GO SUBWAY", type: "move", next: "subway", msg: "You head down into the dark tunnels." },
-                        { txt: "SLEEP", type: "action", heal: 10, msg: "A quick nap in the shadows." }
-                    ]}
-                ]
-            },
-            "subway": {
-                desc: "SUBWAY TUNNELS. Rats the size of cats are scurrying here.",
-                color: "#020617",
-                targets: [
-                    { name: "RAT KING", x: "30%", y: "70%", options: [
-                        { txt: "BATTLE", type: "danger", damage: 30, msg: "A fierce fight! You win, but you bleed." },
-                        { txt: "OFFER HAM", type: "action", req: "Honey Ham", karma: 30, msg: "The Rats bow to you. They lead you to the Lab." },
-                        { txt: "SNEAK", type: "move", next: "lab", msg: "You follow the power lines to a heavy steel door." },
-                        { txt: "HOWL", type: "action", msg: "The sound echoes for miles." }
-                    ]}
-                ]
-            },
-            "lab": {
-                desc: "THE SECRET LAB. This is where the 'incident' happened.",
-                color: "#4c1d95",
-                targets: [
-                    { name: "MAINFRAME", x: "50%", y: "40%", options: [
-                        { txt: "SWIPE CARD", type: "move", next: "petstore", req: "Lab Keycard", msg: "The vault door hisses open!" },
-                        { txt: "CHEW CABLES", type: "danger", damage: 40, msg: "ZAP!! High voltage dog. -40 HP" },
-                        { txt: "URINATE", type: "action", karma: -50, msg: "You short-circuit the whole building." },
-                        { txt: "BARK", type: "action", msg: "A recording says 'Access Denied, Woof'." }
-                    ]}
-                ]
-            },
-            "petstore": {
-                desc: "THE PET STORE. Dozens of dogs are locked in high-tech cages.",
-                color: "#7c2d12",
-                targets: [
-                    { name: "PRISONER 01", x: "40%", y: "50%", options: [
-                        { txt: "FREE THEM", type: "move", next: "construction", karma: 100, msg: "The pack is free! We run to the skyline!" },
-                        { txt: "STEAL TOYS", type: "action", item: "Squeaky", msg: "You got a toy! You feel happy." },
-                        { txt: "EAT TREATS", type: "action", heal: 50, msg: "Premium organic treats. +50 HP" },
-                        { txt: "WHINE", type: "action", msg: "You cry together." }
-                    ]}
-                ]
-            },
-            "construction": {
-                desc: "CONSTRUCTION SITE. Steel beams hanging over the abyss.",
-                color: "#451a03",
-                targets: [
-                    { name: "CRANE", x: "50%", y: "30%", options: [
-                        { txt: "CLIMB", type: "move", next: "rooftop", msg: "You ride the hook to the very top!" },
-                        { txt: "BARK AT WORKERS", type: "action", msg: "There are no workers left, puppy." },
-                        { txt: "FALL", type: "danger", damage: 20, msg: "A small slip. Ouch." },
-                        { txt: "FIND TOOL", type: "action", item: "Hammer", msg: "Why do you have a hammer?" }
-                    ]}
-                ]
-            },
-            "rooftop": {
-                desc: "THE ROOFTOP. A helicopter is idling. The Alpha Cat stands in your way.",
-                color: "#7f1d1d",
-                targets: [
-                    { name: "ALPHA CAT", x: "50%", y: "40%", options: [
-                        { txt: "MEGA BARK", type: "move", next: "beach", msg: "The cat is blown off the roof by your power!" },
-                        { txt: "BITE", type: "danger", damage: 40, msg: "A bloody battle on the helipad!" },
-                        { txt: "GIVE RING", type: "action", req: "Ring", msg: "The cat takes the shiny and leaves. Weird." },
-                        { txt: "USE SQUEAKY", type: "action", req: "Squeaky", msg: "The cat is distracted by the noise!" }
-                    ]}
-                ]
-            },
-            "beach": {
-                desc: "THE END: THE BEACH. The ocean is blue. You are the Best Boy.",
-                color: "#1e3a8a",
-                targets: [
-                    { name: "THE SUNSET", x: "50%", y: "40%", options: [
-                        { txt: "YOU WIN", type: "move", next: "win", msg: "Credits roll..." }
-                    ]}
-                ]
+        // Graffiti tags
+        const tags = ["NO FUTURE", "RIOT", "BARKOUR", "NETLIFY", "2026", "☢️", "☠️"];
+
+        function resize() {
+            width = canvas.width = window.innerWidth > 500 ? 500 : window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            player.x = width / 2;
+            player.targetX = width / 2;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        window.addEventListener('keydown', (e) => { 
+            keys[e.code] = true; 
+            if (e.code === 'Space' && !gameActive && player.state === 'dead') init();
+        });
+        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+        
+        window.addEventListener('mousemove', (e) => { 
+            if(gameActive) player.targetX = e.clientX - canvas.getBoundingClientRect().left; 
+        });
+        window.addEventListener('touchmove', (e) => { 
+            if(gameActive) player.targetX = e.touches[0].clientX - canvas.getBoundingClientRect().left;
+            e.preventDefault();
+        }, {passive: false});
+
+        function createPlatform(y) {
+            const gapWidth = 110;
+            const gapX = Math.random() * (width - gapWidth);
+            platforms.push({ y, gapX, gapWidth, scored: false });
+        }
+
+        // Add debris to fly past
+        function createDebris() {
+            debris.push({
+                x: Math.random() * width,
+                y: height + 50,
+                vy: - (Math.random() * 5 + 2),
+                size: Math.random() * 20 + 5,
+                type: Math.random() > 0.5 ? 'brick' : 'tag',
+                text: tags[Math.floor(Math.random() * tags.length)]
+            });
+        }
+
+        function createBlood(x, y, count=40, speed=12) {
+            for(let i=0; i<count; i++) {
+                particles.push({
+                    x, y, 
+                    vx: (Math.random() - 0.5) * speed, 
+                    vy: (Math.random() - 0.5) * speed,
+                    life: 1.0,
+                    size: Math.random() * 6 + 2,
+                    color: `rgba(${255}, 0, ${Math.random()*100},`
+                });
             }
-        };
+        }
 
-        function render() {
-            const scene = world[gameState.currentLoc];
-            if (!scene) {
-                document.getElementById('victory').style.display = 'flex';
+        function init() {
+            platforms = [];
+            debris = [];
+            currentPlatformGap = 300; 
+            for(let i=1; i<6; i++) createPlatform(height/2 + i * currentPlatformGap);
+            score = 0;
+            floorsPassed = 0;
+            gameActive = true;
+            player.y = 50;
+            player.vy = 0;
+            player.x = width / 2;
+            player.targetX = width / 2;
+            player.state = 'falling';
+            particles = [];
+            deathScreen.style.display = 'none';
+            leaderboardSection.style.display = 'none';
+            deathTimer = 0;
+            update();
+        }
+
+        function update() {
+            if (!gameActive && player.state === 'dead') return;
+
+            // Handle death sequence timing
+            if (!gameActive && player.state === 'impaled') {
+                deathTimer++;
+                if (deathTimer === 30) { // Cough 1
+                    createBlood(player.x, player.y - 15, 10, 5); 
+                }
+                if (deathTimer === 60) { // Cough 2
+                    createBlood(player.x, player.y - 15, 15, 7);
+                }
+                if (deathTimer > 100) {
+                    player.state = 'dead';
+                    endGame();
+                }
+                draw();
+                requestAnimationFrame(update);
                 return;
             }
 
-            elements.stage.style.background = scene.bg;
-            elements.narrator.innerText = scene.desc;
-            elements.health.innerText = gameState.hp;
-            elements.inv.innerText = gameState.inventory.join(", ") || "EMPTY";
-            
-            // Set Karma Text
-            const karmaDisp = document.getElementById('karma-display');
-            if(gameState.karma > 20) karmaDisp.innerText = "HOLY DOG";
-            else if(gameState.karma < -20) karmaDisp.innerText = "DEVIL DOG";
-            else karmaDisp.innerText = "GOOD BOY";
+            // Player Physics (True Falling)
+            player.vy += gravity;
+            player.y += player.vy;
 
-            const layer = elements.itemsContainer;
-            layer.innerHTML = "";
-            scene.targets.forEach(item => {
-                const div = document.createElement('div');
-                div.className = "interactable";
-                div.style.left = item.x;
-                div.style.top = item.y;
-                div.innerText = item.name;
-                div.onclick = () => showActions(item);
-                layer.appendChild(div);
-            });
-            elements.buttons.innerHTML = "";
-        }
+            // Arrow Keys (Slower for precision)
+            if (keys['ArrowLeft']) player.targetX -= 7;
+            if (keys['ArrowRight']) player.targetX += 7;
 
-        function showActions(item) {
-            elements.narrator.innerHTML = `TARGET ACQUIRED: <span class="highlight">${item.name}</span>`;
-            const grid = elements.buttons;
-            grid.innerHTML = "";
-            item.options.forEach(opt => {
-                const b = document.createElement('button');
-                b.className = "btn " + (opt.type ? "btn-" + opt.type : "");
-                b.innerText = opt.txt;
-                b.onclick = () => {
-                    if(opt.req && !gameState.inventory.includes(opt.req)) {
-                        elements.narrator.innerText = "MISSING ITEM: " + opt.req;
-                        return;
-                    }
-                    if(opt.damage) { 
-                        gameState.hp -= opt.damage;
-                        triggerShake();
-                    }
-                    if(act = opt.heal) gameState.hp += opt.heal;
-                    if(opt.karma) gameState.karma += opt.karma;
-                    if(opt.item) gameState.inventory.push(opt.item);
-                    
-                    elements.narrator.innerText = opt.msg;
-                    
-                    if(opt.next) {
-                        gameState.currentLoc = opt.next;
-                        setTimeout(render, 1500);
+            // Smooth Interpolation
+            player.x += (player.targetX - player.x) * 0.1;
+
+            if (player.x < 15) { player.x = 15; player.targetX = 15; }
+            if (player.x > width - 15) { player.x = width - 15; player.targetX = width - 15; }
+
+            // Move debris and platforms UP to simulate falling
+            platforms.forEach(p => p.y -= player.vy * 0.5 + 2);
+            debris.forEach(d => d.y += d.vy - player.vy * 0.5);
+
+            if(Math.random() < 0.05) createDebris();
+
+            // Collision Detection
+            platforms.forEach(p => {
+                // Land on platform
+                if (player.vy > 0 && player.y + 30 > p.y && player.y < p.y + 10) {
+                    if (player.x > p.gapX && player.x < p.gapX + p.gapWidth) {
+                        // Safe through gap
+                        if (!p.scored) {
+                            p.scored = true;
+                            score += 10;
+                            floorsPassed++;
+                        }
                     } else {
-                        setTimeout(() => {
-                            elements.narrator.innerText = scene.desc;
-                            showActions(item);
-                        }, 1500);
+                        // HIT SPIKES
+                        gameActive = false;
+                        player.state = 'impaled';
+                        player.vy = 0;
+                        player.y = p.y - 15; // Latch onto spikes
+                        createBlood(player.x, player.y + 20, 50, 15);
                     }
-                    updateHUD();
-                };
-                grid.appendChild(b);
+                }
             });
+
+            // Cleanup & Spawn
+            if (platforms.length > 0 && platforms[0].y < -100) {
+                platforms.shift();
+                createPlatform(platforms[platforms.length-1].y + currentPlatformGap);
+            }
+            debris = debris.filter(d => d.y > -100);
+
+            draw();
+            requestAnimationFrame(update);
         }
 
-        startGame();
+        function draw() {
+            // Draw Concrete Background with Graffiti
+            ctx.fillStyle = '#444'; 
+            ctx.fillRect(0, 0, width, height);
+            
+            // Draw static graffiti (only visible when falling past)
+            ctx.font = '80px Bangers';
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
+            ctx.fillText("NO FUTURE", 50, 300);
+            ctx.fillText("RIOT", width - 150, 600);
+            ctx.font = '40px Bangers';
+            ctx.fillText("NETLIFY", 20, height - 100);
+
+            // Draw Platforms (Dirty Bricks + Sharp Spikes)
+            platforms.forEach(p => {
+                ctx.fillStyle = '#333'; // Dark Brick
+                ctx.fillRect(0, p.y, p.gapX, 30);
+                ctx.fillRect(p.gapX + p.gapWidth, p.y, width - (p.gapX + p.gapWidth), 30);
+                
+                // Red Spikes
+                ctx.fillStyle = var(--danger);
+                for(let i=0; i<width; i+=15) {
+                    if (i < p.gapX || i > p.gapX + p.gapWidth) {
+                        ctx.beginPath();
+                        ctx.moveTo(i, p.y);
+                        ctx.lineTo(i+7, p.y - 15);
+                        ctx.lineTo(i+14, p.y);
+                        ctx.fill();
+                    }
+                }
+            });
+
+            // Draw Debris
+            debris.forEach(d => {
+                if(d.type === 'brick') {
+                    ctx.fillStyle = '#555';
+                    ctx.fillRect(d.x, d.y, d.size, d.size/2);
+                } else {
+                    ctx.font = `${d.size}px Space Grotesk`;
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.fillText(d.text, d.x, d.y);
+                }
+            });
+
+            // Draw Stick Man
+            ctx.strokeStyle = player.state === 'falling' ? 'white' : var(--danger);
+            ctx.lineWidth = 4;
+            const px = player.x;
+            const py = player.y;
+
+            if (player.state === 'falling') {
+                // Head
+                ctx.beginPath(); ctx.arc(px, py - 10, 7, 0, Math.PI * 2); ctx.stroke();
+                // Body & Arms (Flailing)
+                ctx.beginPath();
+                ctx.moveTo(px, py - 3); ctx.lineTo(px, py + 15);
+                ctx.moveTo(px - 10, py - 5); ctx.lineTo(px + 10, py + 10); // Arm 1
+                ctx.moveTo(px + 10, py - 5); ctx.lineTo(px - 10, py + 10); // Arm 2
+                // Legs
+                ctx.moveTo(px, py + 15); ctx.lineTo(px - 7, py + 28);
+                ctx.moveTo(px, py + 15); ctx.lineTo(px + 7, py + 28);
+                ctx.stroke();
+            } else {
+                // Impaled on side
+                ctx.translate(px, py);
+                ctx.rotate(Math.PI / 2);
+                // Head
+                ctx.beginPath(); ctx.arc(0, -10, 7, 0, Math.PI * 2); ctx.stroke();
+                // Body
+                ctx.beginPath();
+                ctx.moveTo(0, -3); ctx.lineTo(0, 15);
+                ctx.moveTo(-8, 5); ctx.lineTo(8, 5);
+                ctx.moveTo(0, 15); ctx.lineTo(-7, 28);
+                ctx.moveTo(0, 15); ctx.lineTo(7, 28);
+                ctx.stroke();
+                ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+            }
+
+            // Draw Blood & Drip
+            particles.forEach((p, i) => {
+                ctx.fillStyle = `${p.color}${p.life})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.1; // Gravity on blood
+                p.life -= 0.015;
+                if(p.life <= 0) particles.splice(i, 1);
+            });
+            scoreEl.innerText = score;
+        }
+
+        function endGame() {
+            document.getElementById('final-score').innerText = "FINAL SCORE: " + score;
+            deathScreen.style.display = 'flex';
+            
+            const isTopTen = scores.length < 10 || score > (scores[scores.length - 1]?.val || 0);
+            if (isTopTen) {
+                leaderboardSection.style.display = 'flex';
+            }
+
+            if (score > parseInt(localStorage.getItem('fall_best') || 0)) {
+                localStorage.setItem('fall_best', score);
+                bestEl.innerText = score;
+            }
+        }
+
+        function submitScore() {
+            const name = document.getElementById('playerName').value || "UNKOWN";
+            scores.push({name, val: score});
+            scores.sort((a,b) => b.val - a.val);
+            scores = scores.slice(0, 10);
+            localStorage.setItem('fall_scores', JSON.stringify(scores));
+            leaderboardSection.style.display = 'none';
+        }
+
+        bestEl.innerText = localStorage.getItem('fall_best') || 0;
+        init();
     </script>
 </body>
 </html>
