@@ -3,367 +3,252 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE PUNK FALL - 2026</title>
+    <title>THE FALL: GENESIS 2026</title>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Space+Grotesk:wght@900&display=swap" rel="stylesheet">
     <style>
-        :root { --danger: #ff0055; --accent: #00ffff; --bg: #222; }
-        body { 
-            margin: 0; padding: 0; overflow: hidden; background: #111; 
-            font-family: 'Space Grotesk', sans-serif; display: flex; justify-content: center; 
-        }
-        #game-wrap {
-            width: 100vw; height: 100vh; max-width: 500px; position: relative;
-            background: #444; /* Concrete Gray */
-            border-left: 6px solid #fff; border-right: 6px solid #fff;
-            box-shadow: 0 0 50px rgba(255, 0, 85, 0.4);
-        }
+        :root { --danger: #ff0055; --accent: #00ffff; }
+        body { margin: 0; padding: 0; overflow: hidden; background: #000; font-family: 'Space Grotesk', sans-serif; display: flex; justify-content: center; }
+        #game-wrap { width: 100vw; height: 100vh; max-width: 500px; position: relative; background: #111; border-left: 10px solid #fff; border-right: 10px solid #fff; overflow: hidden; }
         canvas { display: block; width: 100%; height: 100%; }
-        
-        #ui {
-            position: absolute; top: 0; left: 0; width: 100%; padding: 15px;
-            box-sizing: border-box; display: flex; justify-content: space-between;
-            pointer-events: none; z-index: 10; font-family: 'Bangers', cursive;
-        }
-        .stat { color: #fff; font-size: 1.5rem; text-shadow: 3px 3px 0 #000; letter-spacing: 2px; }
-        
-        /* Minimalist End Screen */
-        #death-screen {
-            position: absolute; bottom: 10%; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.85); border: 3px solid #fff; padding: 15px;
-            border-radius: 10px; display: none; flex-direction: column; align-items: center; z-index: 100;
-            width: 70%; box-shadow: 8px 8px 0 var(--danger);
-        }
-        #death-screen h2 { color: var(--danger); margin: 0; font-size: 2.5rem; font-family: 'Bangers'; text-transform: uppercase; }
-        
-        #leaderboard-entry { width: 100%; display: none; flex-direction: column; align-items: center; margin-bottom: 10px;}
-        input { padding: 8px; margin: 5px 0; border: 2px solid #fff; background: #000; color: #fff; width: 80%; font-size: 1rem; text-align: center; }
-        
-        .btn-retry { 
-            background: #fff; color: #000; width: 100%; 
-            font-size: 1.8rem; padding: 10px; margin-top: 5px;
-            border: 4px solid #000; font-weight: 900; 
-            cursor: pointer; font-family: 'Bangers'; text-transform: uppercase;
-        }
-        .btn-retry:active { transform: translate(3px, 3px); }
-        
-        button.small-btn { padding: 5px 10px; background: var(--accent); border: 2px solid #000; font-weight: 700; cursor: pointer; margin-top: 5px; font-family: 'Bangers'; }
+        #ui { position: absolute; top: 0; left: 0; width: 100%; padding: 15px; box-sizing: border-box; display: flex; justify-content: space-between; pointer-events: none; z-index: 100; font-family: 'Bangers', cursive; }
+        .stat { color: #fff; font-size: 1.8rem; text-shadow: 3px 3px 0 #000; }
+        #leaderboard { position: absolute; top: 70px; right: 15px; color: rgba(255,255,255,0.6); font-family: 'Bangers'; font-size: 1.1rem; text-align: right; pointer-events: none; }
+        #death-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 6px solid var(--danger); padding: 30px; display: none; flex-direction: column; align-items: center; z-index: 200; width: 85%; box-shadow: 0 0 30px rgba(255,0,85,0.5); }
+        #death-screen h2 { color: #fff; margin: 0; font-size: 4rem; font-family: 'Bangers'; text-shadow: 5px 5px 0 var(--danger); }
+        .btn-retry { background: #4ade80; color: #000; width: 100%; font-size: 2.5rem; padding: 15px; margin-top: 20px; border: 5px solid #000; cursor: pointer; font-family: 'Bangers'; text-transform: uppercase; }
+        input { padding: 12px; margin: 10px 0; border: 3px solid #fff; background: #000; color: #fff; width: 85%; text-align: center; font-family: 'Bangers'; font-size: 1.3rem; }
     </style>
 </head>
 <body>
-
     <div id="game-wrap">
         <div id="ui">
-            <div class="stat">SCORE: <span id="score">0</span></div>
-            <div class="stat">BEST: <span id="best">0</span></div>
+            <div class="stat">PTS: <span id="score-val">0</span></div>
+            <div id="lvl-ui" class="stat" style="color:var(--danger)">GOTHIC</div>
         </div>
-
+        <div id="leaderboard"></div>
         <canvas id="gameCanvas"></canvas>
-
         <div id="death-screen">
             <h2>WASTED</h2>
-            <p id="final-score" style="color:#fff; font-size: 1.2rem; margin: 5px; font-family: 'Bangers';"></p>
-            
-            <div id="leaderboard-entry">
-                <input type="text" id="playerName" placeholder="TAG THE BOARD..." maxlength="12">
-                <button class="small-btn" onclick="submitScore()">SAVE TAG</button>
+            <p id="final-score" style="color:var(--accent); font-size: 1.8rem; margin: 5px; font-family: 'Bangers';"></p>
+            <div id="lb-input" style="display:none; flex-direction:column; align-items:center; width:100%;">
+                <input type="text" id="playerName" placeholder="TAG YOUR LEGACY" maxlength="10">
+                <button style="background:var(--accent); font-family:'Bangers'; padding:8px 20px; border:none; cursor:pointer;" onclick="saveScore()">SAVE TAG</button>
             </div>
-
-            <button class="btn-retry" onclick="init()">PLAY AGAIN</button>
+            <button class="btn-retry" onclick="init()">REBOOT</button>
         </div>
     </div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const scoreEl = document.getElementById('score');
-        const bestEl = document.getElementById('best');
+        const scoreEl = document.getElementById('score-val');
+        const lvlEl = document.getElementById('lvl-ui');
         const deathScreen = document.getElementById('death-screen');
-        const leaderboardSection = document.getElementById('leaderboard-entry');
+        const lbEl = document.getElementById('leaderboard');
 
-        let width, height;
-        // True Falling: Start player higher up, add velocity y
-        let player = { x: 0, y: 50, vy: 0, r: 10, targetX: 0, state: 'falling' };
-        let platforms = [];
-        let particles = [];
-        let debris = [];
-        let score = 0;
-        let floorsPassed = 0;
-        let gameActive = true;
-        let gravity = 0.15;
-        let currentPlatformGap = 300; 
-        let keys = {};
-        let scores = JSON.parse(localStorage.getItem('fall_scores') || "[]");
-        let deathTimer = 0;
+        let width, height, player, platforms, particles, decors, score, floorsPassed, gameActive, keys, deathTimer, currentTheme, loopId;
+        let scrollSpeed = 2.0, platformGap = 340, bgScroll = 0;
 
-        // Graffiti tags
-        const tags = ["NO FUTURE", "RIOT", "BARKOUR", "NETLIFY", "2026", "☢️", "☠️"];
+        const THEMES = [
+            { name: "CATHEDRAL", bg: "#0d0d0d", wall: "#1a1a1a", type: "brick", spike: "#ff0055", items: ["skull", "candelabra"] },
+            { name: "RAVE HOUSE", bg: "#000", wall: "#111", type: "grid", spike: "#0f0", items: ["laser", "speaker"] },
+            { name: "NEON LAB", bg: "#05001a", wall: "#0a0033", type: "digital", spike: "#0ff", items: ["monitor", "wire"] },
+            { name: "DUNGEON", bg: "#1a0f00", wall: "#2b1b00", type: "stone", spike: "#ff8000", items: ["torch", "bars"] },
+            { name: "TRIBAL", bg: "#3d1400", wall: "#5c1f00", type: "mud", spike: "#ffcc00", items: ["mask", "vines"] }
+        ];
 
         function resize() {
-            width = canvas.width = window.innerWidth > 500 ? 500 : window.innerWidth;
+            width = canvas.width = Math.min(window.innerWidth, 500);
             height = canvas.height = window.innerHeight;
-            player.x = width / 2;
-            player.targetX = width / 2;
         }
         window.addEventListener('resize', resize);
         resize();
 
-        window.addEventListener('keydown', (e) => { 
-            keys[e.code] = true; 
-            if (e.code === 'Space' && !gameActive && player.state === 'dead') init();
-        });
-        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
-        
-        window.addEventListener('mousemove', (e) => { 
-            if(gameActive) player.targetX = e.clientX - canvas.getBoundingClientRect().left; 
-        });
-        window.addEventListener('touchmove', (e) => { 
-            if(gameActive) player.targetX = e.touches[0].clientX - canvas.getBoundingClientRect().left;
-            e.preventDefault();
-        }, {passive: false});
+        window.addEventListener('keydown', e => { keys[e.code] = true; if(e.code === 'Space' && !gameActive) init(); });
+        window.addEventListener('keyup', e => { keys[e.code] = false; });
 
-        function createPlatform(y) {
-            const gapWidth = 110;
-            const gapX = Math.random() * (width - gapWidth);
-            platforms.push({ y, gapX, gapWidth, scored: false });
+        function updateHUD_LB() {
+            let lb = JSON.parse(localStorage.getItem('genesis_lb') || "[]");
+            lbEl.innerHTML = "TOP 3<br>" + lb.slice(0,3).map((x,i) => `${i+1}. ${x.name}: ${x.val}`).join("<br>");
         }
 
-        // Add debris to fly past
-        function createDebris() {
-            debris.push({
-                x: Math.random() * width,
-                y: height + 50,
-                vy: - (Math.random() * 5 + 2),
-                size: Math.random() * 20 + 5,
-                type: Math.random() > 0.5 ? 'brick' : 'tag',
-                text: tags[Math.floor(Math.random() * tags.length)]
+        function createDecor(y) {
+            decors.push({
+                x: Math.random() * (width - 60) + 30,
+                y,
+                type: currentTheme.items[Math.floor(Math.random() * currentTheme.items.length)],
+                size: Math.random() * 30 + 40,
+                rot: (Math.random() - 0.5) * 0.4
             });
         }
 
-        function createBlood(x, y, count=40, speed=12) {
-            for(let i=0; i<count; i++) {
-                particles.push({
-                    x, y, 
-                    vx: (Math.random() - 0.5) * speed, 
-                    vy: (Math.random() - 0.5) * speed,
-                    life: 1.0,
-                    size: Math.random() * 6 + 2,
-                    color: `rgba(${255}, 0, ${Math.random()*100},`
-                });
-            }
-        }
-
         function init() {
-            platforms = [];
-            debris = [];
-            currentPlatformGap = 300; 
-            for(let i=1; i<6; i++) createPlatform(height/2 + i * currentPlatformGap);
-            score = 0;
-            floorsPassed = 0;
-            gameActive = true;
-            player.y = 50;
-            player.vy = 0;
-            player.x = width / 2;
-            player.targetX = width / 2;
-            player.state = 'falling';
-            particles = [];
+            if (loopId) cancelAnimationFrame(loopId);
+            gameActive = true; score = 0; floorsPassed = 0; deathTimer = 0; 
+            scrollSpeed = 2.0; bgScroll = 0;
+            currentTheme = THEMES[0];
+            
+            player = { x: width/2, vx: 0, y: -80, targetY: height/2.5, state: 'intro', friction: 0.9, accel: 0.9 };
+            platforms = []; particles = []; decors = []; keys = {};
+            
+            for(let i=0; i<8; i++) {
+                let y = height + i * platformGap;
+                platforms.push({ y, gapX: Math.random()*(width-160)+20, gapWidth: 140, scored: false });
+                if(i % 2 === 0) createDecor(y - 170);
+            }
             deathScreen.style.display = 'none';
-            leaderboardSection.style.display = 'none';
-            deathTimer = 0;
+            document.getElementById('lb-input').style.display = 'none';
+            updateHUD_LB();
             update();
         }
 
         function update() {
-            if (!gameActive && player.state === 'dead') return;
-
-            // Handle death sequence timing
-            if (!gameActive && player.state === 'impaled') {
+            if (!gameActive) {
                 deathTimer++;
-                if (deathTimer === 30) { // Cough 1
-                    createBlood(player.x, player.y - 15, 10, 5); 
+                if (deathTimer % 20 === 0 && deathTimer < 250) spawnBlood(player.x, player.y - 10, 15, 6, true);
+                if (deathTimer === 75) {
+                    document.getElementById('final-score').innerText = "PTS: " + score;
+                    deathScreen.style.display = 'flex';
+                    let lb = JSON.parse(localStorage.getItem('genesis_lb') || "[]");
+                    if(lb.length < 10 || score > (lb[lb.length-1]?.val || 0)) document.getElementById('lb-input').style.display = 'flex';
                 }
-                if (deathTimer === 60) { // Cough 2
-                    createBlood(player.x, player.y - 15, 15, 7);
-                }
-                if (deathTimer > 100) {
-                    player.state = 'dead';
-                    endGame();
-                }
-                draw();
-                requestAnimationFrame(update);
-                return;
             }
 
-            // Player Physics (True Falling)
-            player.vy += gravity;
-            player.y += player.vy;
+            if (player.state === 'intro') {
+                player.y += (player.targetY - player.y) * 0.05;
+                if (Math.abs(player.y - player.targetY) < 1) player.state = 'active';
+            }
 
-            // Arrow Keys (Slower for precision)
-            if (keys['ArrowLeft']) player.targetX -= 7;
-            if (keys['ArrowRight']) player.targetX += 7;
+            if (gameActive) {
+                if (keys['ArrowLeft']) player.vx -= player.accel;
+                if (keys['ArrowRight']) player.vx += player.accel;
+                player.vx *= player.friction;
+                player.x += player.vx;
+                player.x = Math.max(35, Math.min(width - 35, player.x));
 
-            // Smooth Interpolation
-            player.x += (player.targetX - player.x) * 0.1;
+                bgScroll = (bgScroll + scrollSpeed) % height;
+                platforms.forEach(p => p.y -= scrollSpeed);
+                decors.forEach(d => d.y -= scrollSpeed);
 
-            if (player.x < 15) { player.x = 15; player.targetX = 15; }
-            if (player.x > width - 15) { player.x = width - 15; player.targetX = width - 15; }
-
-            // Move debris and platforms UP to simulate falling
-            platforms.forEach(p => p.y -= player.vy * 0.5 + 2);
-            debris.forEach(d => d.y += d.vy - player.vy * 0.5);
-
-            if(Math.random() < 0.05) createDebris();
-
-            // Collision Detection
-            platforms.forEach(p => {
-                // Land on platform
-                if (player.vy > 0 && player.y + 30 > p.y && player.y < p.y + 10) {
-                    if (player.x > p.gapX && player.x < p.gapX + p.gapWidth) {
-                        // Safe through gap
-                        if (!p.scored) {
-                            p.scored = true;
-                            score += 10;
-                            floorsPassed++;
+                platforms.forEach(p => {
+                    if (player.y + 25 > p.y && player.y < p.y + 15) {
+                        if (player.x > p.gapX && player.x < p.gapX + p.gapWidth) {
+                            if (!p.scored) { p.scored = true; score += 10; floorsPassed++; scrollSpeed += 0.03; switchHouse(); }
+                        } else {
+                            gameActive = false; player.state = 'dead';
+                            spawnBlood(player.x, p.y, 60, 18, false);
                         }
-                    } else {
-                        // HIT SPIKES
-                        gameActive = false;
-                        player.state = 'impaled';
-                        player.vy = 0;
-                        player.y = p.y - 15; // Latch onto spikes
-                        createBlood(player.x, player.y + 20, 50, 15);
                     }
+                });
+
+                if (platforms[0].y < -200) {
+                    platforms.shift();
+                    platforms.push({ y: platforms[platforms.length-1].y + platformGap, gapX: Math.random()*(width-160)+20, gapWidth: 140, scored: false });
+                    if(Math.random() > 0.5) createDecor(height + 100);
                 }
-            });
-
-            // Cleanup & Spawn
-            if (platforms.length > 0 && platforms[0].y < -100) {
-                platforms.shift();
-                createPlatform(platforms[platforms.length-1].y + currentPlatformGap);
             }
-            debris = debris.filter(d => d.y > -100);
-
             draw();
-            requestAnimationFrame(update);
+            loopId = requestAnimationFrame(update);
+        }
+
+        function switchHouse() {
+            let idx = Math.floor(floorsPassed / 10) % THEMES.length;
+            if (currentTheme.name !== THEMES[idx].name) {
+                currentTheme = THEMES[idx];
+                lvlEl.innerText = currentTheme.name;
+                lvlEl.style.color = currentTheme.spike;
+            }
+        }
+
+        function spawnBlood(x, y, count, speed, isCough) {
+            for(let i=0; i<count; i++) {
+                particles.push({ x, y, vx: (Math.random()-0.5)*speed, vy: (Math.random()-0.5)*speed, life: 1, size: Math.random()*5+2, isCough });
+            }
         }
 
         function draw() {
-            // Draw Concrete Background with Graffiti
-            ctx.fillStyle = '#444'; 
+            ctx.fillStyle = currentTheme.bg;
             ctx.fillRect(0, 0, width, height);
-            
-            // Draw static graffiti (only visible when falling past)
-            ctx.font = '80px Bangers';
-            ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
-            ctx.fillText("NO FUTURE", 50, 300);
-            ctx.fillText("RIOT", width - 150, 600);
-            ctx.font = '40px Bangers';
-            ctx.fillText("NETLIFY", 20, height - 100);
 
-            // Draw Platforms (Dirty Bricks + Sharp Spikes)
+            // RENDER BACKGROUND TILES
+            ctx.strokeStyle = "rgba(255,255,255,0.04)";
+            ctx.lineWidth = 2;
+            if(currentTheme.type === "brick") {
+                for(let y=-100; y<height+100; y+=50) {
+                    for(let x=0; x<width; x+=80) ctx.strokeRect(x + (y % 100 === 0 ? 40 : 0), y - (bgScroll % 100), 80, 50);
+                }
+            } else if(currentTheme.type === "grid") {
+                for(let i=0; i<width; i+=40) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,height); ctx.stroke(); }
+                for(let i=-100; i<height+100; i+=40) { ctx.beginPath(); ctx.moveTo(0,i-(bgScroll % 40)); ctx.lineTo(width,i-(bgScroll % 40)); ctx.stroke(); }
+            }
+
+            decors.forEach(d => {
+                ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot);
+                drawAsset(d.type, d.size); ctx.restore();
+            });
+
             platforms.forEach(p => {
-                ctx.fillStyle = '#333'; // Dark Brick
-                ctx.fillRect(0, p.y, p.gapX, 30);
-                ctx.fillRect(p.gapX + p.gapWidth, p.y, width - (p.gapX + p.gapWidth), 30);
-                
-                // Red Spikes
-                ctx.fillStyle = var(--danger);
+                ctx.fillStyle = "#000"; ctx.fillRect(0, p.y, p.gapX, 25);
+                ctx.fillRect(p.gapX + p.gapWidth, p.y, width, 25);
+                ctx.fillStyle = currentTheme.spike;
                 for(let i=0; i<width; i+=15) {
                     if (i < p.gapX || i > p.gapX + p.gapWidth) {
-                        ctx.beginPath();
-                        ctx.moveTo(i, p.y);
-                        ctx.lineTo(i+7, p.y - 15);
-                        ctx.lineTo(i+14, p.y);
-                        ctx.fill();
+                        ctx.beginPath(); ctx.moveTo(i, p.y); ctx.lineTo(i+7, p.y-25); ctx.lineTo(i+14, p.y); ctx.fill();
                     }
                 }
             });
 
-            // Draw Debris
-            debris.forEach(d => {
-                if(d.type === 'brick') {
-                    ctx.fillStyle = '#555';
-                    ctx.fillRect(d.x, d.y, d.size, d.size/2);
-                } else {
-                    ctx.font = `${d.size}px Space Grotesk`;
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-                    ctx.fillText(d.text, d.x, d.y);
-                }
-            });
-
-            // Draw Stick Man
-            ctx.strokeStyle = player.state === 'falling' ? 'white' : var(--danger);
-            ctx.lineWidth = 4;
-            const px = player.x;
-            const py = player.y;
-
-            if (player.state === 'falling') {
-                // Head
-                ctx.beginPath(); ctx.arc(px, py - 10, 7, 0, Math.PI * 2); ctx.stroke();
-                // Body & Arms (Flailing)
-                ctx.beginPath();
-                ctx.moveTo(px, py - 3); ctx.lineTo(px, py + 15);
-                ctx.moveTo(px - 10, py - 5); ctx.lineTo(px + 10, py + 10); // Arm 1
-                ctx.moveTo(px + 10, py - 5); ctx.lineTo(px - 10, py + 10); // Arm 2
-                // Legs
-                ctx.moveTo(px, py + 15); ctx.lineTo(px - 7, py + 28);
-                ctx.moveTo(px, py + 15); ctx.lineTo(px + 7, py + 28);
-                ctx.stroke();
-            } else {
-                // Impaled on side
-                ctx.translate(px, py);
-                ctx.rotate(Math.PI / 2);
-                // Head
-                ctx.beginPath(); ctx.arc(0, -10, 7, 0, Math.PI * 2); ctx.stroke();
-                // Body
-                ctx.beginPath();
-                ctx.moveTo(0, -3); ctx.lineTo(0, 15);
-                ctx.moveTo(-8, 5); ctx.lineTo(8, 5);
-                ctx.moveTo(0, 15); ctx.lineTo(-7, 28);
-                ctx.moveTo(0, 15); ctx.lineTo(7, 28);
-                ctx.stroke();
-                ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+            // THE MAN
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            if (!gameActive) {
+                ctx.rotate(Math.PI / 1.7);
+                if (deathTimer % 20 < 5) ctx.translate((Math.random()-0.5)*10, (Math.random()-0.5)*5);
             }
+            ctx.shadowBlur = 10; ctx.shadowColor = "#fff";
+            ctx.strokeStyle = gameActive ? "#fff" : "#f00";
+            ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.arc(0, -15, 8, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -7); ctx.lineTo(0, 15); ctx.stroke();
+            let flail = gameActive ? Math.sin(Date.now()*0.02)*12 : 5;
+            ctx.beginPath(); ctx.moveTo(-15, flail); ctx.lineTo(15, -flail); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, 15); ctx.lineTo(-10, 30); ctx.moveTo(0, 15); ctx.lineTo(10, 30); ctx.stroke();
+            ctx.restore();
+            ctx.shadowBlur = 0;
 
-            // Draw Blood & Drip
             particles.forEach((p, i) => {
-                ctx.fillStyle = `${p.color}${p.life})`;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fill();
-                p.x += p.vx;
-                p.y += p.vy;
-                p.vy += 0.1; // Gravity on blood
-                p.life -= 0.015;
-                if(p.life <= 0) particles.splice(i, 1);
+                ctx.fillStyle = `rgba(${p.isCough ? '255,50,50' : '180,0,0'}, ${p.life})`;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+                p.x += p.vx; p.y += p.vy; if (p.isCough) p.vy += 0.25; p.life -= 0.015;
+                if (p.life <= 0) particles.splice(i, 1);
             });
             scoreEl.innerText = score;
         }
 
-        function endGame() {
-            document.getElementById('final-score').innerText = "FINAL SCORE: " + score;
-            deathScreen.style.display = 'flex';
-            
-            const isTopTen = scores.length < 10 || score > (scores[scores.length - 1]?.val || 0);
-            if (isTopTen) {
-                leaderboardSection.style.display = 'flex';
-            }
-
-            if (score > parseInt(localStorage.getItem('fall_best') || 0)) {
-                localStorage.setItem('fall_best', score);
-                bestEl.innerText = score;
+        function drawAsset(type, s) {
+            ctx.strokeStyle = currentTheme.spike + "55";
+            ctx.lineWidth = 3;
+            switch(type) {
+                case "skull": ctx.strokeRect(-s/4, -s/4, s/2, s/2); break;
+                case "candelabra": ctx.moveTo(0, s/2); ctx.lineTo(0, -s/2); ctx.moveTo(-s/3, -s/4); ctx.lineTo(s/3, -s/4); ctx.stroke(); break;
+                case "laser": ctx.strokeStyle="#0f0"; ctx.beginPath(); ctx.moveTo(-width, 0); ctx.lineTo(width, 10); ctx.stroke(); break;
+                case "speaker": ctx.strokeRect(-s/2, -s/2, s, s); ctx.beginPath(); ctx.arc(0,0,s/4,0,Math.PI*2); ctx.stroke(); break;
+                case "monitor": ctx.strokeRect(-s/2, -s/3, s, s/1.5); ctx.fillStyle="#0f02"; ctx.fillRect(-s/2, -s/3, s, s/1.5); break;
+                case "torch": ctx.fillStyle="orange"; ctx.beginPath(); ctx.arc(0,0,s/4,0,Math.PI*2); ctx.fill(); break;
+                case "mask": ctx.beginPath(); ctx.ellipse(0,0,s/3,s/2,0,0,Math.PI*2); ctx.stroke(); break;
             }
         }
 
-        function submitScore() {
-            const name = document.getElementById('playerName').value || "UNKOWN";
-            scores.push({name, val: score});
-            scores.sort((a,b) => b.val - a.val);
-            scores = scores.slice(0, 10);
-            localStorage.setItem('fall_scores', JSON.stringify(scores));
-            leaderboardSection.style.display = 'none';
+        function saveScore() {
+            const name = document.getElementById('playerName').value || "SCRUB";
+            let lb = JSON.parse(localStorage.getItem('genesis_lb') || "[]");
+            lb.push({name, val: score});
+            lb.sort((a,b) => b.val - a.val);
+            localStorage.setItem('genesis_lb', JSON.stringify(lb.slice(0, 10)));
+            document.getElementById('lb-input').style.display = 'none';
+            updateHUD_LB();
         }
 
-        bestEl.innerText = localStorage.getItem('fall_best') || 0;
         init();
     </script>
 </body>
