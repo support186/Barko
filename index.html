@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE FALL: ZERO LAG</title>
+    <title>THE FALL: POLISHED GAMEPLAY</title>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Space+Grotesk:wght@900&display=swap" rel="stylesheet">
     <style>
         :root { --danger: #ff0022; --accent: #ffffff; }
         body { margin: 0; padding: 0; overflow: hidden; background: #000; font-family: 'Space Grotesk', sans-serif; display: flex; justify-content: center; touch-action: none; }
         #game-wrap { width: 100vw; height: 100vh; max-width: 500px; position: relative; background: #050505; border-left: 5px solid #111; border-right: 5px solid #111; overflow: hidden; }
-        canvas { display: block; width: 100%; height: 100%; cursor: none; }
+        canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
         #ui { position: absolute; top: 0; left: 0; width: 100%; padding: 20px; box-sizing: border-box; display: flex; justify-content: space-between; pointer-events: none; z-index: 100; font-family: 'Bangers', cursive; }
         .stat { color: #fff; font-size: 2.2rem; text-shadow: 4px 4px 0 #000; letter-spacing: 2px; }
         
@@ -51,11 +51,8 @@
     </div>
 
     <script>
-        // MAIN CANVAS
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d', { alpha: false }); 
-        
-        // OFF-SCREEN BACKGROUND CANVAS (Huge Performance Boost)
         const bgCanvas = document.createElement('canvas');
         const bgCtx = bgCanvas.getContext('2d', { alpha: false });
 
@@ -68,11 +65,12 @@
         let width, height, player, platforms, particles, decors, score, floorsPassed, gameActive, keys, deathTimer, loopId;
         
         const START_SPEED = 5.4; 
-        let scrollSpeed = START_SPEED;
+        let scrollSpeed = 0; // Starts at 0 for cinematic drop
         let platformGap = 390;
         let bgScroll = 0;
         let globalTime = 0;
         let shakeFrames = 0;
+        let introTimer = 0; 
 
         const ARCHITECTURES = ["CATHEDRAL", "CYBER-LAB", "BIO-SEWER"];
         const ACCESSORIES = ["NONE", "HAT", "DRESS", "GOGGLES", "CROWN"];
@@ -120,7 +118,7 @@
         // PRE-RENDER BACKGROUND
         function buildBackground() {
             bgCanvas.width = width;
-            bgCanvas.height = 600; // Tile height
+            bgCanvas.height = 600; 
             bgCtx.fillStyle = "#050508"; bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
             
             let h = 100, w = 150; 
@@ -144,17 +142,25 @@
         function resize() { 
             width = canvas.width = Math.min(window.innerWidth, 500); 
             height = canvas.height = window.innerHeight; 
-            buildBackground(); // Rebuild off-screen canvas on resize
+            buildBackground(); 
         }
         window.addEventListener('resize', resize); resize();
 
+        // CONTROLS (SMOOTH MOUSE/TOUCH/KEYBOARD)
         window.addEventListener('keydown', e => { keys[e.code] = true; if(e.code === 'Space' && !gameActive && deathTimer > 30 && nameInputDiv.style.display === 'none') init(); });
         window.addEventListener('keyup', e => { keys[e.code] = false; });
-        const handleInput = (clientX) => { if(!gameActive) return; const rect = canvas.getBoundingClientRect(); player.targetX = (clientX - rect.left) * (width / rect.width); };
+        
+        const handleInput = (clientX) => { 
+            if(!gameActive || player.state === 'intro') return; 
+            const rect = canvas.getBoundingClientRect(); 
+            player.targetX = (clientX - rect.left) * (width / rect.width); 
+        };
+        
         canvas.addEventListener('touchstart', e => handleInput(e.touches[0].clientX), {passive:false});
         canvas.addEventListener('touchmove', e => { handleInput(e.touches[0].clientX); e.preventDefault(); }, {passive:false});
-        canvas.addEventListener('mousedown', e => handleInput(e.clientX));
-        canvas.addEventListener('mousemove', e => { if(e.buttons > 0) handleInput(e.clientX); });
+        
+        // Mouse hover now controls character WITHOUT needing to click
+        canvas.addEventListener('mousemove', e => handleInput(e.clientX));
 
         function createDecor(y, gapX, gapWidth) {
             let newDecors = [];
@@ -166,14 +172,20 @@
         function init() {
             if (loopId) cancelAnimationFrame(loopId);
             gameActive = true; score = 0; floorsPassed = 0; currentLevel = 0; deathTimer = 0; shakeFrames = 0;
-            scrollSpeed = START_SPEED; bgScroll = 0; theme = getTheme(); buildBackground();
-            player = { x: width/2, targetX: width/2, y: -80, targetY: height/2.8, state: 'intro' };
+            
+            // 2 SECOND CINEMATIC INTRO
+            introTimer = 120; // 60 frames per second = 2 seconds
+            scrollSpeed = 0; 
+            bgScroll = 0; theme = getTheme(); buildBackground();
+            
+            player = { x: width/2, targetX: width/2, y: -80, targetY: height/3.5, state: 'intro' };
             platforms = []; particles = []; decors = []; keys = {}; 
             scoreEl.innerText = "0"; lvlEl.innerText = theme.arch; lvlEl.style.color = theme.mainColor;
             deathScreen.style.display = 'none';
 
+            // Generate first batch of platforms (pushed down slightly so you don't instantly hit one)
             for(let i=0; i<8; i++) {
-                let y = height + i * platformGap;
+                let y = height + 100 + (i * platformGap);
                 let gapWidth = 95; let gapX = Math.random()*(width - gapWidth - 40) + 20; 
                 platforms.push({ y, gapX, gapWidth, scored: false });
                 decors.push(...createDecor(y, gapX, gapWidth));
@@ -190,7 +202,7 @@
                     x: x, y: y, 
                     vx: Math.cos(angle) * speed, vy: (Math.sin(angle) * speed) - 10, 
                     life: 2.0 + Math.random(), size: Math.random() * 6 + 3, 
-                    splatted: false, dripSpeed: 0,
+                    splatted: false, dripSpeed: 0, dripLength: 0,
                     color: Math.random() > 0.5 ? '#ff0000' : '#aa0000' 
                 });
             }
@@ -222,7 +234,7 @@
             } else { 
                 if (d.type === 'A') { 
                     ctx.fillStyle="#222"; ctx.fillRect(-15,0,30,40);
-                    if(Math.random()>0.9) particles.push({x: d.x, y: d.y+40, vx:0, vy:5, life:0.5, size:4, splatted:false, color:theme.mainColor, dripSpeed: 0});
+                    if(Math.random()>0.9) particles.push({x: d.x, y: d.y+40, vx:0, vy:5, life:0.5, size:4, splatted:false, color:theme.mainColor, dripSpeed: 0, dripLength: 0});
                 } else { 
                     ctx.strokeStyle=theme.mainColor; ctx.lineWidth=8; ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(20, 50, 0, 100); ctx.stroke();
                 }
@@ -260,14 +272,27 @@
                 if (deathTimer === 90) checkHighScore();
             }
             
+            // INTRO FALL LOGIC
             if (player.state === 'intro') {
-                player.y += (player.targetY - player.y) * 0.05;
-                if (Math.abs(player.y - player.targetY) < 1) player.state = 'active';
+                introTimer--;
+                player.y += (player.targetY - player.y) * 0.03; // Extremely slow, smooth glide down
+                if (introTimer <= 0) {
+                    player.state = 'active';
+                    scrollSpeed = START_SPEED; // ENGAGE WORLD MOVEMENT
+                }
             }
             
-            if (gameActive) {
-                player.x += (player.targetX - player.x) * 0.18;
-                player.x = Math.max(15, Math.min(width - 15, player.x));
+            if (gameActive && player.state === 'active') {
+                
+                // KEYBOARD SMOOTH MOVEMENT
+                if (keys['ArrowLeft'] || keys['KeyA']) player.targetX -= 12;
+                if (keys['ArrowRight'] || keys['KeyD']) player.targetX += 12;
+                
+                // CONSTRAIN TARGET TO SCREEN BOUNDS
+                player.targetX = Math.max(15, Math.min(width - 15, player.targetX));
+                
+                // SMOOTH LERPING FOR ALL CONTROLS
+                player.x += (player.targetX - player.x) * 0.16; 
                 
                 bgScroll += scrollSpeed * 0.3; 
                 platforms.forEach(p => p.y -= scrollSpeed);
@@ -298,15 +323,20 @@
                 decors = decors.filter(d => d.y > -150);
             }
 
-            // PHYSICS LOOP OUTSIDE OF DRAW
+            // ADVANCED BLOOD PHYSICS
             particles.forEach(p => {
                 if (p.splatted) {
-                    p.y -= scrollSpeed; p.y += p.dripSpeed; 
+                    p.y -= scrollSpeed; // Move up with the platform
+                    p.dripSpeed += 0.2; // Gravity pulling the drip down
+                    p.dripLength += p.dripSpeed; // Visually lengthens downward
                 } else {
-                    p.x += p.vx; p.y += p.vy; p.vy += 1.2; 
+                    p.x += p.vx; p.y += p.vy; p.vy += 1.5; // Heavy gravity
                     let hitFloor = platforms.find(plat => p.y >= plat.y && p.y <= plat.y + 15 && (p.x < plat.gapX || p.x > plat.gapX + plat.gapWidth));
                     if (hitFloor) {
-                        p.splatted = true; p.y = hitFloor.y; p.dripSpeed = Math.random() * 2 + 0.5; 
+                        p.splatted = true; 
+                        p.y = hitFloor.y; 
+                        p.dripSpeed = 0; 
+                        p.dripLength = 0;
                     }
                 }
                 p.life -= 0.005; 
@@ -318,7 +348,6 @@
         }
 
         function draw() {
-            // DRAW OFF-SCREEN BACKGROUND (Super Fast)
             let bgOffset = bgScroll % bgCanvas.height;
             ctx.drawImage(bgCanvas, 0, -bgOffset);
             ctx.drawImage(bgCanvas, 0, bgCanvas.height - bgOffset);
@@ -329,30 +358,28 @@
             decors.forEach(d => drawDecor(d)); 
             drawPlatforms();
 
-            // FAST 8-BIT BLOOD RECTANGLES (No rotation math)
+            // DRAW DOWNWARD DRIPPING BLOOD
             particles.forEach(p => {
                 ctx.fillStyle = p.color;
                 if (p.splatted) {
-                    ctx.fillRect(p.x - p.size/2, p.y - (p.dripSpeed*5), p.size, p.size + (p.dripSpeed*8));
+                    // Draw the original splat mark
+                    ctx.fillRect(p.x - p.size/2, p.y, p.size, p.size);
+                    // Draw the drip extending DOWN the screen
+                    ctx.fillRect(p.x - p.size/4, p.y, p.size/2, p.dripLength);
                 } else {
                     let stretch = Math.max(1, Math.abs(p.vy) * 0.2);
                     ctx.fillRect(p.x - p.size/2, p.y - (p.size*stretch)/2, p.size, p.size * stretch);
                 }
             });
 
-            // PLAYER & ACCESSORIES
             if (gameActive || deathTimer < 5) {
                 ctx.save(); ctx.translate(player.x, player.y);
-                let flail = gameActive ? Math.sin(globalTime * 2) * 6 : 6;
+                let flail = (gameActive && player.state === 'active') ? Math.sin(globalTime * 2) * 6 : 6;
                 
-                // FAKE GLOW LAYER
                 drawPlayerPath(flail);
                 ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.lineWidth = 12; ctx.lineCap = "round"; ctx.stroke();
-                
-                // SOLID CORE LAYER
                 ctx.strokeStyle = "#fff"; ctx.lineWidth = 4; ctx.stroke();
                 
-                // Accessories
                 ctx.fillStyle = "#fff";
                 if(theme.acc === "HAT") { ctx.fillRect(-8, -25, 16, 4); ctx.fillRect(-5, -35, 10, 10); }
                 if(theme.acc === "DRESS") { ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-12, 15); ctx.lineTo(12, 15); ctx.fill(); }
