@@ -44,19 +44,16 @@
         let platformGap = START_GAP;
         let bgScroll = 0;
 
-        // --- IMAGE ASSET LOADER ---
-        const images = {
-            bg: new Image(),
-            spike: new Image(),
-            base: new Image(),
-            player: new Image()
-        };
+        // --- IMAGE ASSET LOADER WITH CACHE BUSTER ---
+        const images = { bg: new Image(), spike: new Image(), base: new Image(), player: new Image() };
         
-        // REVERTED TO ORIGINAL CLEAN FILENAMES
-        images.bg.src = "bg_cathedral.png"; 
-        images.spike.src = "spike_glow.png";
-        images.base.src = "platform_base.png";
-        images.player.src = "player_idle.png";
+        // This random number forces the browser to download the image fresh every time
+        const nocache = "?v=" + new Date().getTime();
+        
+        images.bg.src = "bg_cathedral.png" + nocache; 
+        images.spike.src = "spike_glow.png" + nocache;
+        images.base.src = "platform_base.png" + nocache;
+        images.player.src = "player_idle.png" + nocache;
 
         function resize() {
             width = canvas.width = Math.min(window.innerWidth, 500);
@@ -82,12 +79,9 @@
         function init() {
             if (loopId) cancelAnimationFrame(loopId);
             gameActive = true; score = 0; floorsPassed = 0; deathTimer = 0; 
-            scrollSpeed = START_SPEED; 
-            bgScroll = 0;
-            
+            scrollSpeed = START_SPEED; bgScroll = 0;
             player = { x: width/2, targetX: width/2, y: -80, targetY: height/2.8, state: 'intro' };
             platforms = []; particles = []; keys = {}; 
-
             scoreEl.innerText = "0";
 
             for(let i=0; i<8; i++) {
@@ -99,14 +93,7 @@
         }
 
         function createParticles(x, y) {
-            for(let i=0; i<40; i++) {
-                particles.push({
-                    x: x, y: y,
-                    vx: (Math.random()-0.5)*15, 
-                    vy: (Math.random()-0.5)*15, 
-                    life: 1
-                });
-            }
+            for(let i=0; i<40; i++) particles.push({ x: x, y: y, vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15, life: 1 });
         }
 
         function update() {
@@ -131,13 +118,9 @@
                 platforms.forEach(p => {
                     if (player.y + 20 > p.y && player.y < p.y + 10) {
                         if (player.x > p.gapX && player.x < p.gapX + p.gapWidth) {
-                            if (!p.scored) { 
-                                p.scored = true; score += 10; floorsPassed++; 
-                                scrollSpeed += 0.04; 
-                            }
+                            if (!p.scored) { p.scored = true; score += 10; floorsPassed++; scrollSpeed += 0.04; }
                         } else {
-                            gameActive = false; player.state = 'dead';
-                            createParticles(player.x, p.y);
+                            gameActive = false; player.state = 'dead'; createParticles(player.x, p.y);
                         }
                     }
                 });
@@ -164,44 +147,28 @@
             }
 
             platforms.forEach(p => {
-                let platformHeight = 120; 
-                let spikeHeight = 40;     
+                let platformHeight = 120; let spikeHeight = 40;     
 
-                ctx.save();
-                ctx.beginPath(); ctx.rect(0, p.y, p.gapX, platformHeight); ctx.clip(); 
-                if (images.base.complete && images.base.naturalWidth !== 0) {
-                    ctx.drawImage(images.base, 0, p.y, width, platformHeight);
-                } else {
-                    ctx.fillStyle = "#000"; ctx.fillRect(0, p.y, width, platformHeight);
-                }
+                ctx.save(); ctx.beginPath(); ctx.rect(0, p.y, p.gapX, platformHeight); ctx.clip(); 
+                if (images.base.complete && images.base.naturalWidth !== 0) ctx.drawImage(images.base, 0, p.y, width, platformHeight);
+                else { ctx.fillStyle = "#000"; ctx.fillRect(0, p.y, width, platformHeight); }
                 ctx.restore();
 
-                ctx.save();
-                ctx.beginPath(); ctx.rect(0, p.y - spikeHeight, p.gapX, spikeHeight); ctx.clip();
-                if (images.spike.complete && images.spike.naturalWidth !== 0) {
-                    ctx.drawImage(images.spike, 0, p.y - spikeHeight, width, spikeHeight);
-                } else {
-                    ctx.fillStyle = "#ff0044"; ctx.fillRect(0, p.y - spikeHeight, width, spikeHeight);
-                }
+                ctx.save(); ctx.beginPath(); ctx.rect(0, p.y - spikeHeight, p.gapX, spikeHeight); ctx.clip();
+                if (images.spike.complete && images.spike.naturalWidth !== 0) ctx.drawImage(images.spike, 0, p.y - spikeHeight, width, spikeHeight);
+                else { ctx.fillStyle = "#ff0044"; ctx.fillRect(0, p.y - spikeHeight, width, spikeHeight); }
                 ctx.restore();
 
-                ctx.save();
-                ctx.beginPath(); ctx.rect(p.gapX + p.gapWidth, p.y, width, platformHeight); ctx.clip(); 
-                if (images.base.complete && images.base.naturalWidth !== 0) {
-                    ctx.drawImage(images.base, 0, p.y, width, platformHeight);
-                }
+                ctx.save(); ctx.beginPath(); ctx.rect(p.gapX + p.gapWidth, p.y, width, platformHeight); ctx.clip(); 
+                if (images.base.complete && images.base.naturalWidth !== 0) ctx.drawImage(images.base, 0, p.y, width, platformHeight);
                 ctx.restore();
 
-                ctx.save();
-                ctx.beginPath(); ctx.rect(p.gapX + p.gapWidth, p.y - spikeHeight, width, spikeHeight); ctx.clip();
-                if (images.spike.complete && images.spike.naturalWidth !== 0) {
-                    ctx.drawImage(images.spike, 0, p.y - spikeHeight, width, spikeHeight);
-                }
+                ctx.save(); ctx.beginPath(); ctx.rect(p.gapX + p.gapWidth, p.y - spikeHeight, width, spikeHeight); ctx.clip();
+                if (images.spike.complete && images.spike.naturalWidth !== 0) ctx.drawImage(images.spike, 0, p.y - spikeHeight, width, spikeHeight);
                 ctx.restore();
             });
 
-            ctx.save(); 
-            ctx.translate(player.x, player.y);
+            ctx.save(); ctx.translate(player.x, player.y);
             if (!gameActive) ctx.rotate(Math.PI / 1.7);
             
             if (images.player.complete && images.player.naturalWidth !== 0) {
@@ -221,7 +188,6 @@
                 p.x += p.vx; p.y += p.vy; p.vy += 0.4; p.life -= 0.03;
                 if (p.life <= 0) particles.splice(i, 1);
             });
-            
             scoreEl.innerText = score;
         }
 
