@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE FALL: 10 SECTORS</title>
+    <title>THE FALL: MASTER SECTOR EDITION</title>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Space+Grotesk:wght@900&display=swap" rel="stylesheet">
     <style>
         :root { --danger: #ff0022; --accent: #ffffff; }
@@ -12,15 +12,18 @@
         canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
         
         #ui { position: absolute; top: 0; left: 0; width: 100%; padding: 15px; box-sizing: border-box; display: flex; justify-content: space-between; pointer-events: none; z-index: 100; font-family: 'Bangers', cursive; }
-        .stat-group { display: flex; flex-direction: column; }
         .pts { color: #fff; font-size: 2.2rem; text-shadow: 3px 3px 0 #000; }
-        #top-3-hud { color: rgba(255,255,255,0.7); font-size: 1.1rem; text-align: right; text-shadow: 2px 2px 0 #000; line-height: 1.2; }
+        #top-3-hud { color: rgba(255,255,255,0.7); font-size: 1rem; text-align: right; text-shadow: 2px 2px 0 #000; line-height: 1.2; }
         
-        #death-screen { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); border: 4px solid var(--danger); padding: 20px; display: none; flex-direction: column; align-items: center; z-index: 200; width: 70%; border-radius: 12px; box-shadow: 0 0 40px rgba(255,0,34,0.6); backdrop-filter: blur(5px); }
-        .btn-retry { background: #4ade80; color: #000; width: 100%; font-size: 2rem; padding: 10px; margin-top: 10px; border: 4px solid #000; cursor: pointer; font-family: 'Bangers'; text-transform: uppercase; box-shadow: 4px 4px 0 #fff; transition: 0.1s; }
-        .btn-retry:active { transform: translate(2px, 2px); box-shadow: 0 0 0 #fff; }
-        #name-input-div { display: none; width: 100%; flex-direction: column; align-items: center; margin-bottom: 15px; }
-        #name-input { width: 90%; padding: 8px; font-size: 1.4rem; font-family: 'Bangers'; text-align: center; border: 3px solid #fff; background: #000; color: #fff; text-transform: uppercase; }
+        #death-screen { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 4px solid var(--danger); padding: 20px; display: none; flex-direction: column; align-items: center; z-index: 200; width: 80%; border-radius: 12px; box-shadow: 0 0 50px rgba(255,0,34,0.6); backdrop-filter: blur(8px); }
+        .btn-retry { background: #4ade80; color: #000; width: 100%; font-size: 2rem; padding: 12px; margin-top: 10px; border: 4px solid #000; cursor: pointer; font-family: 'Bangers'; text-transform: uppercase; box-shadow: 4px 4px 0 #fff; }
+        
+        #gallery { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 15px 0; width: 100%; }
+        .gallery-item { aspect-ratio: 1; border: 2px solid #333; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: #444; background: #111; border-radius: 4px; position: relative; }
+        .gallery-item.unlocked { color: #fff; border-color: #4ade80; }
+
+        #name-input-div { display: none; width: 100%; flex-direction: column; align-items: center; margin-bottom: 10px; }
+        #name-input { width: 90%; padding: 10px; font-size: 1.4rem; font-family: 'Bangers'; text-align: center; border: 3px solid #fff; background: #000; color: #fff; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -28,18 +31,26 @@
         <div id="ui">
             <div class="stat-group">
                 <div class="pts">PTS: <span id="score-val">0</span></div>
-                <div id="lvl-ui" style="font-size: 1.4rem; letter-spacing: 1px;">CATHEDRAL</div>
+                <div id="lvl-ui" style="font-size: 1.4rem;">CATHEDRAL</div>
             </div>
             <div id="top-3-hud"></div>
         </div>
         <canvas id="gameCanvas"></canvas>
         <div id="death-screen">
-            <h2 style="color:#fff; font-size: 3.5rem; margin:0; text-shadow: 3px 3px 0 var(--danger);">WASTED</h2>
-            <p id="final-score" style="color:#fff; font-size: 1.8rem; margin: 10px 0; font-family: 'Bangers';"></p>
+            <h2 style="color:#fff; font-size: 3rem; margin:0; text-shadow: 3px 3px 0 var(--danger);">WASTED</h2>
+            
             <div id="name-input-div">
-                <input type="text" id="name-input" maxlength="8" placeholder="ENTER NAME">
-                <button class="btn-retry" style="background:var(--danger); color:#fff; font-size:1.4rem;" onclick="saveScore()">SAVE SCORE</button>
+                <input type="text" id="name-input" maxlength="10" placeholder="ENTER NAME">
+                <button class="btn-retry" style="background:var(--danger); color:#fff; font-size:1.4rem;" onclick="saveScore()">SAVE RECORD</button>
             </div>
+            
+            <div id="leaderboard" style="width:100%; color:#fff; font-size: 0.9rem; border-bottom: 1px solid #333; padding-bottom: 8px; margin-top: 5px;">
+                <div id="lb-list"></div>
+            </div>
+
+            <div id="gallery-header" style="font-family:'Bangers'; color:#4ade80; margin-top:10px; font-size:1.4rem;">UNLOCKED SECTORS</div>
+            <div id="gallery"></div>
+
             <button class="btn-retry" onclick="init()">START AGAIN</button>
         </div>
     </div>
@@ -49,73 +60,62 @@
         const ctx = canvas.getContext('2d', { alpha: false });
         const bgCanvas = document.createElement('canvas');
         const bgCtx = bgCanvas.getContext('2d', { alpha: false });
-        
-        const scoreEl = document.getElementById('score-val');
-        const lvlEl = document.getElementById('lvl-ui');
-        const deathScreen = document.getElementById('death-screen');
-        const top3Hud = document.getElementById('top-3-hud');
-        const nameInputDiv = document.getElementById('name-input-div');
-        const nameInput = document.getElementById('name-input');
+
+        const scoreEl = document.getElementById('score-val'), lvlEl = document.getElementById('lvl-ui');
+        const deathScreen = document.getElementById('death-screen'), top3Hud = document.getElementById('top-3-hud');
+        const lbList = document.getElementById('lb-list'), galleryEl = document.getElementById('gallery');
+        const nameInputDiv = document.getElementById('name-input-div'), nameInput = document.getElementById('name-input');
 
         let width, height, player, platforms, particles, decors, score, floorsPassed, gameActive, keys, deathTimer, loopId;
         const START_SPEED = 5.4;
-        let scrollSpeed = 0, bgScroll = 0, globalTime = 0, shakeFrames = 0, introTimer = 0, platformsGenerated = 0, currentLevel = 0;
+        let scrollSpeed = 0, bgScroll = 0, globalTime = 0, shakeFrames = 0, platformsGenerated = 0, currentLevel = 0;
 
         const STYLES = ["CATHEDRAL", "CYBER-LAB", "BIO-SEWER", "SOLAR-FLARE", "VOID-PURPLE", "ARCTIC", "SAND-RUIN", "DEEP-SEA", "MAGMA", "EMERALD"];
         const ACCESSORIES = ["NONE", "HAT", "DRESS", "GOGGLES", "CROWN"];
 
         let leaderboard = JSON.parse(localStorage.getItem('barko_lb')) || [];
+        let unlockedStyles = JSON.parse(localStorage.getItem('barko_gallery')) || [0];
 
-        function updateHUDLeaderboard() {
-            const top3 = leaderboard.slice(0, 3);
-            top3Hud.innerHTML = "TOP SURVIVORS<br>" + (top3.length ? top3.map((e, i) => `${i+1}. ${e.name} - ${e.score}`).join('<br>') : "NO DATA");
+        function updateUI() {
+            top3Hud.innerHTML = "TOP SURVIVORS<br>" + leaderboard.slice(0, 3).map((e, i) => `${i+1}. ${e.name} - ${e.score}`).join('<br>');
+            lbList.innerHTML = leaderboard.slice(0, 5).map((e, i) => `<div style="display:flex; justify-content:space-between;"><span>${i+1}. ${e.name}</span><span>${e.score}</span></div>`).join('');
+            galleryEl.innerHTML = STYLES.map((name, i) => {
+                const isUnlocked = unlockedStyles.includes(i);
+                return `<div class="gallery-item ${isUnlocked ? 'unlocked' : ''}" style="--theme-color: hsl(${i*36}, 100%, 50%)">${isUnlocked ? name.slice(0,3) : '???'}</div>`;
+            }).join('');
         }
 
         function getTheme() {
-            let hueBase = (currentLevel * 36) % 360;
-            return {
-                name: STYLES[currentLevel % STYLES.length],
-                acc: ACCESSORIES[currentLevel % ACCESSORIES.length],
-                main: `hsl(${hueBase}, 100%, 50%)`,
-                dark: `hsl(${hueBase}, 80%, 12%)`,
-                accent: `hsl(${(hueBase+180)%360}, 100%, 50%)`
-            };
+            let h = (currentLevel * 36) % 360;
+            return { idx: currentLevel % 10, name: STYLES[currentLevel % 10], acc: ACCESSORIES[currentLevel % 5], main: `hsl(${h}, 100%, 50%)`, dark: `hsl(${h}, 80%, 10%)` };
         }
         let theme = getTheme();
 
         function buildBackground() {
             bgCanvas.width = width; bgCanvas.height = 800;
             bgCtx.fillStyle = "#050508"; bgCtx.fillRect(0, 0, width, 800);
-            let h = 80, w = 120;
+            let h = 100, w = 150;
             for (let y = 0; y < 800; y += h) {
-                let offset = (Math.round(y/h)%2===0) ? 0 : w/2;
+                let off = (Math.round(y/h)%2===0) ? 0 : w/2;
                 for (let x = -w; x < width; x += w) {
-                    bgCtx.strokeStyle = "rgba(0,0,0,0.4)";
+                    bgCtx.strokeStyle = "rgba(0,0,0,0.5)";
                     if (["CATHEDRAL", "SAND-RUIN", "MAGMA"].includes(theme.name)) {
                         bgCtx.fillStyle = (Math.abs(x*y)%3===0) ? "#0d0d11" : "#121216";
-                        bgCtx.fillRect(x+offset, y, w, h); bgCtx.strokeRect(x+offset, y, w, h);
-                    } else if (["CYBER-LAB", "VOID-PURPLE", "EMERALD"].includes(theme.name)) {
+                        bgCtx.fillRect(x+off, y, w, h); bgCtx.strokeRect(x+off, y, w, h);
+                    } else if (["CYBER-LAB", "VOID-PURPLE", "EMERALD", "ARCTIC"].includes(theme.name)) {
                         bgCtx.strokeStyle = theme.dark; bgCtx.strokeRect(x, y, w, h);
-                        if(Math.random()>0.8) { bgCtx.fillStyle = theme.dark; bgCtx.fillRect(x+20, y+20, 10, 10); }
                     } else {
-                        bgCtx.fillStyle = theme.dark; bgCtx.beginPath(); bgCtx.arc(x+w/2, y+h/2, w/5, 0, 7); bgCtx.fill();
+                        bgCtx.fillStyle = theme.dark; bgCtx.beginPath(); bgCtx.arc(x+w/2, y+h/2, w/6, 0, 7); bgCtx.fill();
                     }
                 }
             }
         }
 
-        function resize() { 
-            width = canvas.width = Math.min(window.innerWidth, 500); 
-            height = canvas.height = window.innerHeight; 
-            buildBackground(); updateHUDLeaderboard(); 
-        }
+        function resize() { width = canvas.width = Math.min(window.innerWidth, 500); height = canvas.height = window.innerHeight; buildBackground(); updateUI(); }
         window.addEventListener('resize', resize); resize();
 
         window.addEventListener('keydown', e => { 
-            if(e.code === 'Space') {
-                e.preventDefault();
-                if(!gameActive && deathTimer > 30 && document.activeElement !== nameInput) init();
-            }
+            if(e.code === 'Space') { e.preventDefault(); if(!gameActive && deathTimer > 30 && document.activeElement !== nameInput) init(); }
             keys[e.code] = true; 
         });
         window.addEventListener('keyup', e => keys[e.code] = false);
@@ -124,17 +124,17 @@
 
         function spawnPlatform(y) {
             platformsGenerated++;
-            let gapW = 92, gapX = Math.random()*(width - gapW - 60) + 30;
+            let gapW = 94, gapX = Math.random()*(width - gapW - 60) + 30;
             let isWood = (platformsGenerated % 10 === 0);
             platforms.push({ y, gapX, gapWidth: gapW, scored: false, isWood, smashed: false });
-            if(gapX > 70) decors.push({ x: gapX/2, y, type: Math.random()>0.5?'A':'B', seed: Math.random() });
+            decors.push({ x: Math.random()*width, y, type: Math.random()>0.5?'A':'B', seed: Math.random() });
         }
 
         function init() {
             if(loopId) cancelAnimationFrame(loopId);
             gameActive = true; score = 0; floorsPassed = 0; currentLevel = 0; deathTimer = 0; platformsGenerated = 0;
-            introTimer = 120; scrollSpeed = 0; theme = getTheme(); buildBackground();
-            player = { x: width/2, targetX: width/2, y: -50, targetY: height/3.8, state: 'intro', pinnedY: null };
+            scrollSpeed = 0; bgScroll = 0; theme = getTheme(); buildBackground();
+            player = { x: width/2, targetX: width/2, y: -50, targetY: height/4, state: 'intro', pinnedY: null };
             platforms = []; particles = []; decors = []; keys = {};
             scoreEl.innerText = "0"; lvlEl.innerText = theme.name; lvlEl.style.color = theme.main;
             deathScreen.style.display = 'none'; nameInputDiv.style.display = 'none';
@@ -144,18 +144,17 @@
 
         function triggerDeath(x, y) {
             shakeFrames = 20; player.pinnedY = y;
-            for(let i=0; i<120; i++) {
-                let a = Math.random()*Math.PI*2, s = Math.random()*18;
-                particles.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s, life: 2.5, size: Math.random()*6+2, color: '#ff0000', drip: 0, isWood: false });
+            for(let i=0; i<100; i++) {
+                let a = Math.random()*Math.PI*2, s = Math.random()*15;
+                particles.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s, life: 2.5, size: Math.random()*5+2, color: '#ff0000', drip: 0, isWood: false });
             }
         }
 
         function saveScore() {
             leaderboard.push({ name: (nameInput.value || 'ANON').toUpperCase(), score: score });
-            leaderboard.sort((a,b) => b.score - a.score);
-            leaderboard = leaderboard.slice(0, 10);
+            leaderboard.sort((a,b) => b.score - a.score); leaderboard = leaderboard.slice(0, 10);
             localStorage.setItem('barko_lb', JSON.stringify(leaderboard));
-            nameInputDiv.style.display = 'none'; updateHUDLeaderboard();
+            nameInputDiv.style.display = 'none'; updateUI();
         }
 
         function update() {
@@ -164,19 +163,18 @@
             if(!gameActive) {
                 deathTimer++;
                 if(deathTimer === 60) {
-                    document.getElementById('final-score').innerText = "SCORE: " + score;
                     if(leaderboard.length < 10 || score > (leaderboard[leaderboard.length-1]?.score || 0)) nameInputDiv.style.display = 'flex';
-                    deathScreen.style.display = 'flex';
+                    updateUI(); deathScreen.style.display = 'flex';
                 }
             }
             if(player.state === 'intro') {
-                introTimer--; player.y += (player.targetY - player.y) * 0.04;
-                if(introTimer <= 0) { player.state = 'active'; scrollSpeed = (currentLevel < 3) ? START_SPEED * 0.95 : START_SPEED; }
+                player.y += (player.targetY - player.y) * 0.04;
+                if(Math.abs(player.y - player.targetY) < 1) { player.state = 'active'; scrollSpeed = (currentLevel < 3) ? START_SPEED * 0.95 : START_SPEED; }
             }
             if(gameActive && player.state === 'active') {
                 if(keys['ArrowLeft'] || keys['KeyA']) player.targetX -= 12;
                 if(keys['ArrowRight'] || keys['KeyD']) player.targetX += 12;
-                player.x += (player.targetX - player.x) * 0.18;
+                player.x += (player.targetX - player.x) * 0.2;
                 bgScroll += scrollSpeed * 0.4;
                 
                 platforms.forEach(p => {
@@ -187,11 +185,12 @@
                                 p.scored = true; score += 10; floorsPassed++;
                                 if(p.isWood) { 
                                     shakeFrames=30; p.smashed=true; 
-                                    for(let i=0; i<30; i++) particles.push({ x: player.x, y: p.y, vx: Math.random()*20-10, vy: -Math.random()*20, life: 1, size: Math.random()*10+5, color: '#543', drip: 0, isWood: true });
+                                    for(let i=0; i<20; i++) particles.push({ x: player.x, y: p.y, vx: Math.random()*20-10, vy: -Math.random()*20, life: 1, size: Math.random()*10+5, color: '#543', drip: 0, isWood: true });
                                 }
                                 if(floorsPassed % 10 === 0) {
                                     currentLevel++; theme = getTheme(); buildBackground();
                                     lvlEl.innerText = theme.name; lvlEl.style.color = theme.main;
+                                    if(!unlockedStyles.includes(theme.idx)) { unlockedStyles.push(theme.idx); localStorage.setItem('barko_gallery', JSON.stringify(unlockedStyles)); }
                                 }
                                 scrollSpeed = (currentLevel < 3) ? (START_SPEED + floorsPassed*0.05) * 0.95 : START_SPEED + floorsPassed*0.05;
                             }
@@ -203,71 +202,66 @@
             }
 
             particles.forEach((p, i) => {
-                if(!p.isWood && p.life < 2.0) { // DRIP LOGIC
-                    p.vx = 0; p.vy = 2.5; p.drip += 1.2;
-                } else {
-                    p.x += p.vx; p.y += p.vy; p.vy += 0.6;
-                }
-                p.life -= 0.015;
-                if(p.life <= 0) particles.splice(i, 1);
+                if(!p.isWood && p.life < 1.8) { p.vx = 0; p.vy = 2.8; p.drip += 1.5; }
+                else { p.x += p.vx; p.y += p.vy; p.vy += 0.8; }
+                p.life -= 0.015; if(p.life <= 0) particles.splice(i, 1);
             });
             draw();
             loopId = requestAnimationFrame(update);
         }
 
         function draw() {
-            let offset = bgScroll % 800;
-            ctx.drawImage(bgCanvas, 0, -offset); ctx.drawImage(bgCanvas, 0, 800-offset);
-            ctx.save();
-            if(shakeFrames > 0) ctx.translate(Math.random()*16-8, Math.random()*16-8);
+            let offset = bgScroll % 800; ctx.drawImage(bgCanvas, 0, -offset); ctx.drawImage(bgCanvas, 0, 800-offset);
+            ctx.save(); if(shakeFrames > 0) ctx.translate(Math.random()*16-8, Math.random()*16-8);
 
             decors.forEach(d => {
-                ctx.save(); ctx.translate(d.x, d.y);
-                ctx.fillStyle = theme.main; ctx.strokeStyle = theme.main; ctx.lineWidth = 3;
-                if(theme.name === "CATHEDRAL") {
-                    ctx.fillRect(-2,0,4,50); ctx.beginPath(); ctx.arc(0,55,12,0,7); ctx.fill();
-                    let f = Math.sin(globalTime*5 + d.seed)*5; ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(0,55+f,4,0,7); ctx.fill();
-                } else if(theme.name === "CYBER-LAB") {
+                ctx.save(); ctx.translate(d.x, d.y); ctx.fillStyle = theme.main; ctx.strokeStyle = theme.main; ctx.lineWidth = 3;
+                let t = theme.name;
+                if(t === "CATHEDRAL") {
+                    ctx.fillRect(-2,0,4,60); ctx.beginPath(); ctx.arc(0,65,15,0,7); ctx.fill();
+                } else if(t === "CYBER-LAB") {
                     ctx.strokeRect(-20,10,40,40); ctx.fillRect(-15,15,30,Math.abs(Math.sin(globalTime+d.seed))*30);
-                } else if(theme.name === "BIO-SEWER") {
-                    ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(30,30,0,100); ctx.stroke();
+                } else if(t === "BIO-SEWER") {
+                    ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(40,40,0,120); ctx.stroke();
+                } else if(t === "SOLAR-FLARE") {
+                    ctx.globalAlpha = 0.3; ctx.beginPath(); ctx.arc(0,0,Math.sin(globalTime*2)*50+60,0,7); ctx.fill(); ctx.globalAlpha = 1;
+                } else if(t === "DEEP-SEA") {
+                    ctx.beginPath(); ctx.moveTo(0,0); ctx.bezierCurveTo(20,50,-20,100,0,150); ctx.stroke();
                 } else {
-                    ctx.fillRect(-10,0,20,20); ctx.fillRect(-2,0,4,100);
+                    ctx.fillRect(-8,0,16,16); ctx.fillRect(-2,0,4,120);
                 }
                 ctx.restore();
             });
 
             platforms.forEach(p => {
                 ctx.fillStyle = "#111"; ctx.fillRect(0, p.y, p.gapX, 40); ctx.fillRect(p.gapX+p.gapWidth, p.y, width, 40);
-                ctx.fillStyle = theme.main;
-                let sW = 16, sH = 30;
+                ctx.fillStyle = theme.main; let sW = 16, sH = 32;
                 ctx.beginPath();
                 for(let i=0; i<p.gapX-sW; i+=sW) { ctx.moveTo(i,p.y); ctx.lineTo(i+sW/2,p.y-sH); ctx.lineTo(i+sW,p.y); }
                 for(let i=p.gapX+p.gapWidth; i<width-sW; i+=sW) { ctx.moveTo(i,p.y); ctx.lineTo(i+sW/2,p.y-sH); ctx.lineTo(i+sW,p.y); }
                 ctx.fill();
                 if(p.isWood && !p.smashed) { 
-                    ctx.fillStyle="#432"; ctx.fillRect(p.gapX, p.y, p.gapWidth, 40);
-                    ctx.strokeStyle="#210"; ctx.lineWidth=2; for(let j=5; j<40; j+=10) { ctx.beginPath(); ctx.moveTo(p.gapX, p.y+j); ctx.lineTo(p.gapX+p.gapWidth, p.y+j); ctx.stroke(); }
+                    ctx.fillStyle="#532"; ctx.fillRect(p.gapX, p.y, p.gapWidth, 40);
+                    ctx.strokeStyle="#321"; ctx.lineWidth=2; for(let j=5;j<40;j+=10){ctx.beginPath();ctx.moveTo(p.gapX,p.y+j);ctx.lineTo(p.gapX+p.gapWidth,p.y+j);ctx.stroke();}
                 }
             });
 
             particles.forEach(p => {
                 ctx.fillStyle = p.color;
-                if(p.isWood) { ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(globalTime); ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size); ctx.restore(); }
+                if(p.isWood) { ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(globalTime*10); ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size); ctx.restore(); }
                 else ctx.fillRect(p.x-p.size/2, p.y, p.size, p.size + p.drip);
             });
 
             if(gameActive || deathTimer < 60) {
-                ctx.save(); 
-                ctx.translate(player.x, !gameActive ? player.pinnedY - 18 : player.y);
+                ctx.save(); ctx.translate(player.x, !gameActive ? player.pinnedY - 20 : player.y);
                 ctx.strokeStyle = "#fff"; ctx.lineWidth = 5; ctx.lineCap = "round";
-                let fl = gameActive ? Math.sin(globalTime*4)*8 : 0;
-                ctx.beginPath(); ctx.arc(0,-18,8,0,7); ctx.moveTo(0,-10); ctx.lineTo(0,12); 
-                ctx.moveTo(-18,fl); ctx.lineTo(18,-fl); ctx.moveTo(0,12); ctx.lineTo(-12,28); ctx.moveTo(0,12); ctx.lineTo(12,28); ctx.stroke();
-                ctx.fillStyle = theme.accent;
-                if(theme.acc === "HAT") ctx.fillRect(-10,-28,20,5);
-                if(theme.acc === "CROWN") { ctx.beginPath(); ctx.moveTo(-10,-24); ctx.lineTo(0,-35); ctx.lineTo(10,-24); ctx.fill(); }
-                if(theme.acc === "GOGGLES") { ctx.fillStyle="#0ff"; ctx.fillRect(-6,-22,12,4); }
+                let fl = gameActive ? Math.sin(globalTime*5)*10 : 0;
+                ctx.beginPath(); ctx.arc(0,-20,9,0,7); ctx.moveTo(0,-11); ctx.lineTo(0,15); 
+                ctx.moveTo(-20,fl); ctx.lineTo(20,-fl); ctx.moveTo(0,15); ctx.lineTo(-14,32); ctx.moveTo(0,15); ctx.lineTo(14,32); ctx.stroke();
+                ctx.fillStyle = theme.main;
+                if(theme.acc === "HAT") ctx.fillRect(-12,-32,24,6);
+                if(theme.acc === "CROWN") { ctx.beginPath(); ctx.moveTo(-12,-26); ctx.lineTo(0,-40); ctx.lineTo(12,-26); ctx.fill(); }
+                if(theme.acc === "GOGGLES") { ctx.fillStyle="#0ff"; ctx.fillRect(-8,-25,16,5); }
                 ctx.restore();
             }
             ctx.setTransform(1,0,0,1,0,0);
