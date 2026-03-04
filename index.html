@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE FALL: NATIVE CATHEDRAL</title>
+    <title>THE FALL: DIRECTOR'S CUT</title>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Space+Grotesk:wght@900&display=swap" rel="stylesheet">
     <style>
-        :root { --danger: #ff0044; --accent: #ffffff; }
+        :root { --danger: #ff0022; --accent: #ffffff; }
         body { margin: 0; padding: 0; overflow: hidden; background: #000; font-family: 'Space Grotesk', sans-serif; display: flex; justify-content: center; touch-action: none; }
         #game-wrap { width: 100vw; height: 100vh; max-width: 500px; position: relative; background: #050505; border-left: 5px solid #111; border-right: 5px solid #111; overflow: hidden; }
         canvas { display: block; width: 100%; height: 100%; cursor: none; }
         #ui { position: absolute; top: 0; left: 0; width: 100%; padding: 20px; box-sizing: border-box; display: flex; justify-content: space-between; pointer-events: none; z-index: 100; font-family: 'Bangers', cursive; }
         .stat { color: #fff; font-size: 2.2rem; text-shadow: 4px 4px 0 #000; letter-spacing: 2px; }
-        #death-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 8px solid var(--danger); padding: 40px; display: none; flex-direction: column; align-items: center; z-index: 200; width: 85%; border-radius: 15px; box-shadow: 0 0 50px rgba(255,0,68,0.5); }
+        #death-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 8px solid var(--danger); padding: 40px; display: none; flex-direction: column; align-items: center; z-index: 200; width: 85%; border-radius: 15px; box-shadow: 0 0 80px rgba(255,0,34,0.6); }
         .btn-retry { background: #4ade80; color: #000; width: 100%; font-size: 3rem; padding: 15px; margin-top: 25px; border: 6px solid #000; cursor: pointer; font-family: 'Bangers'; text-transform: uppercase; box-shadow: 6px 6px 0 #fff; }
     </style>
 </head>
@@ -44,6 +44,7 @@
         let platformGap = START_GAP;
         let bgScroll = 0;
         let globalTime = 0;
+        let shakeFrames = 0;
 
         function resize() {
             width = canvas.width = Math.min(window.innerWidth, 500);
@@ -52,7 +53,7 @@
         window.addEventListener('resize', resize);
         resize();
 
-        window.addEventListener('keydown', e => { keys[e.code] = true; if(e.code === 'Space' && !gameActive) init(); });
+        window.addEventListener('keydown', e => { keys[e.code] = true; if(e.code === 'Space' && !gameActive && deathTimer > 30) init(); });
         window.addEventListener('keyup', e => { keys[e.code] = false; });
         
         const handleInput = (clientX) => {
@@ -71,20 +72,14 @@
             let rightSpace = width - (gapX + gapWidth);
             let newDecors = [];
             
-            // Add items to left block
-            if (leftSpace > 80) {
-                newDecors.push({ x: gapX / 2, y: y, type: Math.random() > 0.5 ? 'CHANDELIER' : 'BANNER' });
-            }
-            // Add items to right block
-            if (rightSpace > 80) {
-                newDecors.push({ x: gapX + gapWidth + (rightSpace / 2), y: y, type: Math.random() > 0.5 ? 'CHANDELIER' : 'BANNER' });
-            }
+            if (leftSpace > 90) newDecors.push({ x: gapX / 2, y: y, type: Math.random() > 0.4 ? 'CANDELABRA' : 'CURTAIN' });
+            if (rightSpace > 90) newDecors.push({ x: gapX + gapWidth + (rightSpace / 2), y: y, type: Math.random() > 0.4 ? 'CANDELABRA' : 'CURTAIN' });
             return newDecors;
         }
 
         function init() {
             if (loopId) cancelAnimationFrame(loopId);
-            gameActive = true; score = 0; deathTimer = 0; 
+            gameActive = true; score = 0; deathTimer = 0; shakeFrames = 0;
             scrollSpeed = START_SPEED; bgScroll = 0;
             player = { x: width/2, targetX: width/2, y: -80, targetY: height/2.8, state: 'intro' };
             platforms = []; particles = []; decors = []; keys = {}; 
@@ -92,8 +87,8 @@
 
             for(let i=0; i<8; i++) {
                 let y = height + i * platformGap;
-                let gapX = Math.random()*(width-180)+20;
-                let gapWidth = 155;
+                let gapWidth = 95; // MUUUCH SMALLER GAP
+                let gapX = Math.random()*(width - gapWidth - 40) + 20; 
                 platforms.push({ y, gapX, gapWidth, scored: false });
                 decors.push(...createDecor(y, gapX, gapWidth));
             }
@@ -101,98 +96,119 @@
             update();
         }
 
-        function createParticles(x, y) {
-            for(let i=0; i<50; i++) particles.push({ x: x, y: y, vx: (Math.random()-0.5)*18, vy: (Math.random()-0.5)*18, life: 1 });
+        // KILL BILL BLOOD ENGINE
+        function triggerGore(x, y) {
+            shakeFrames = 20; // Massive screen shake
+            for(let i=0; i<250; i++) {
+                let angle = Math.random() * Math.PI * 2;
+                let speed = Math.random() * 25; // High velocity spray
+                particles.push({ 
+                    x: x, 
+                    y: y, 
+                    vx: Math.cos(angle) * speed, 
+                    vy: (Math.sin(angle) * speed) - 10, // Burst upwards
+                    life: 1.5 + Math.random(), 
+                    size: Math.random() * 5 + 2,
+                    splatted: false,
+                    color: Math.random() > 0.5 ? '#ff0000' : '#880000' // Bright arterial + dark venous
+                });
+            }
         }
 
         function drawBackground() {
-            ctx.fillStyle = "#0a0a0c"; 
+            ctx.fillStyle = "#070709"; 
             ctx.fillRect(0, 0, width, height);
             
             ctx.lineWidth = 2;
-            let brickH = 60;
-            let brickW = 100;
+            let brickH = 60; let brickW = 100;
             let startY = (bgScroll % brickH) - brickH;
 
             for (let y = startY; y < height; y += brickH) {
                 let offset = (Math.round(y / brickH) % 2 === 0) ? 0 : brickW / 2;
                 for (let x = -brickW; x < width; x += brickW) {
-                    // Give some bricks a slightly darker stone color
-                    ctx.fillStyle = (Math.abs(x*y) % 5 === 0) ? "#111114" : "#16161a";
+                    ctx.fillStyle = (Math.abs(x*y) % 5 === 0) ? "#0d0d11" : "#121216";
                     ctx.fillRect(x + offset, y, brickW, brickH);
-                    
-                    // Shadow/highlight for 3D effect
-                    ctx.strokeStyle = "#000";
-                    ctx.strokeRect(x + offset, y, brickW, brickH);
-                    ctx.strokeStyle = "rgba(255,255,255,0.03)";
-                    ctx.strokeRect(x + offset + 2, y + 2, brickW - 4, brickH - 4);
+                    ctx.strokeStyle = "#000"; ctx.strokeRect(x + offset, y, brickW, brickH);
+                    ctx.strokeStyle = "rgba(255,255,255,0.02)"; ctx.strokeRect(x + offset + 2, y + 2, brickW - 4, brickH - 4);
                 }
             }
         }
 
         function drawDecor(d) {
-            ctx.save();
-            ctx.translate(d.x, d.y);
+            ctx.save(); ctx.translate(d.x, d.y);
             
-            if (d.type === 'CHANDELIER') {
-                ctx.strokeStyle = "#222"; ctx.lineWidth = 4;
-                // Main chain
+            if (d.type === 'CANDELABRA') {
+                // Chains
+                ctx.strokeStyle = "#111"; ctx.lineWidth = 3;
                 ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 50); ctx.stroke();
-                // Base
-                ctx.fillStyle = "#111";
-                ctx.beginPath(); ctx.arc(0, 50, 30, 0, Math.PI); ctx.fill(); ctx.stroke();
-                // Candles
-                for(let i=-1; i<=1; i+=1) {
-                    let cx = i * 20;
-                    ctx.fillStyle = "#ddd"; ctx.fillRect(cx - 3, 35, 6, 15);
-                    // Flickering flame
-                    let flicker = Math.sin(globalTime + cx) * 3;
-                    ctx.fillStyle = "rgba(255, 100, 0, 0.8)";
-                    ctx.shadowBlur = 10 + flicker; ctx.shadowColor = "#ff4400";
-                    ctx.beginPath(); ctx.arc(cx, 30 + flicker/2, 5, 0, Math.PI * 2); ctx.fill();
-                    ctx.shadowBlur = 0;
-                }
-            } else if (d.type === 'BANNER') {
-                ctx.fillStyle = "#4a0000"; // Dark red
-                ctx.fillRect(-20, 0, 40, 80);
-                // Cutout at bottom for tattered look
-                ctx.fillStyle = "transparent";
-                ctx.globalCompositeOperation = "destination-out";
-                ctx.beginPath(); ctx.moveTo(-20, 80); ctx.lineTo(0, 60); ctx.lineTo(20, 80); ctx.fill();
-                ctx.globalCompositeOperation = "source-over";
                 
-                // Banner pole
-                ctx.fillStyle = "#111"; ctx.fillRect(-30, 0, 60, 5);
+                // Ornate Iron Arms (Bezier Curves)
+                ctx.strokeStyle = "#151515"; ctx.lineWidth = 6; ctx.lineCap = "round";
+                ctx.beginPath();
+                ctx.moveTo(0, 45); ctx.quadraticCurveTo(-45, 80, -35, 35); // Left arm
+                ctx.moveTo(0, 45); ctx.quadraticCurveTo(45, 80, 35, 35);  // Right arm
+                ctx.stroke();
+
+                // Center Base
+                ctx.fillStyle = "#111";
+                ctx.beginPath(); ctx.moveTo(-15, 30); ctx.lineTo(15, 30); ctx.lineTo(0, 60); ctx.fill();
+
+                // Candles (Tapered)
+                const drawCandle = (cx, cy) => {
+                    ctx.fillStyle = "#ddccaa";
+                    ctx.beginPath(); ctx.moveTo(cx-4, cy); ctx.lineTo(cx+4, cy); ctx.lineTo(cx+3, cy-20); ctx.lineTo(cx-3, cy-20); ctx.fill();
+                    
+                    // Flame & Glow
+                    let flicker = Math.sin(globalTime * 2 + cx) * 3;
+                    ctx.fillStyle = "rgba(255, 150, 0, 0.9)";
+                    ctx.shadowBlur = 20 + flicker; ctx.shadowColor = "#ff5500";
+                    ctx.beginPath(); ctx.arc(cx, cy-25 + flicker/3, 5, 0, Math.PI * 2); ctx.fill();
+                    // White hot center
+                    ctx.fillStyle = "#fff"; ctx.shadowBlur = 0;
+                    ctx.beginPath(); ctx.arc(cx, cy-24 + flicker/3, 2, 0, Math.PI * 2); ctx.fill();
+                };
+                
+                drawCandle(-35, 35); drawCandle(0, 30); drawCandle(35, 35);
+
+            } else if (d.type === 'CURTAIN') {
+                // Heavy Draped Curtains
+                let cw = 40; 
+                
+                // Back fold
+                ctx.fillStyle = "#550000";
+                ctx.beginPath(); ctx.moveTo(-cw, 0); ctx.lineTo(cw, 0); ctx.quadraticCurveTo(0, 80, 0, 110); ctx.fill();
+
+                // Front folds
+                ctx.fillStyle = "#880000";
+                ctx.beginPath(); ctx.moveTo(-cw, 0); ctx.quadraticCurveTo(-cw/2, 60, -cw+10, 130); ctx.quadraticCurveTo(0, 100, cw/2, 0); ctx.fill();
+                ctx.fillStyle = "#770000";
+                ctx.beginPath(); ctx.moveTo(cw/2, 0); ctx.quadraticCurveTo(cw, 60, cw-10, 120); ctx.quadraticCurveTo(0, 90, -cw/4, 0); ctx.fill();
+
+                // Gold Trim
+                ctx.strokeStyle = "#cc9900"; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(-cw, 0); ctx.quadraticCurveTo(-cw/2, 60, -cw+10, 130); ctx.stroke();
             }
             ctx.restore();
         }
 
         function drawPlatforms() {
             platforms.forEach(p => {
-                // Draw Base Blocks (Dark Iron)
-                ctx.fillStyle = "#151515";
-                ctx.fillRect(0, p.y, p.gapX, 25);
-                ctx.fillRect(p.gapX + p.gapWidth, p.y, width, 25);
+                ctx.fillStyle = "#111";
+                ctx.fillRect(0, p.y, p.gapX, 35);
+                ctx.fillRect(p.gapX + p.gapWidth, p.y, width, 35);
                 
-                // Iron trim
-                ctx.fillStyle = "#222";
-                ctx.fillRect(0, p.y, p.gapX, 4);
-                ctx.fillRect(p.gapX + p.gapWidth, p.y, width, 4);
+                ctx.fillStyle = "#1a1a1a";
+                ctx.fillRect(0, p.y, p.gapX, 6);
+                ctx.fillRect(p.gapX + p.gapWidth, p.y, width, 6);
 
-                // GLOWING NEON SPIKES
+                // NEON SPIKES
                 ctx.save();
-                ctx.shadowBlur = 15; 
-                ctx.shadowColor = "#ff0044";
-                ctx.fillStyle = "#ff0044";
+                ctx.shadowBlur = 15; ctx.shadowColor = "#ff0022"; ctx.fillStyle = "#ff0022";
+                let spikeW = 16; let spikeH = 28;
                 
-                let spikeW = 16;
-                let spikeH = 25;
-                
-                // Left Spikes
                 for(let i = 0; i < p.gapX - spikeW; i += spikeW) {
                     ctx.beginPath(); ctx.moveTo(i, p.y); ctx.lineTo(i + spikeW/2, p.y - spikeH); ctx.lineTo(i + spikeW, p.y); ctx.fill();
                 }
-                // Right Spikes
                 for(let i = p.gapX + p.gapWidth; i < width - spikeW; i += spikeW) {
                     ctx.beginPath(); ctx.moveTo(i, p.y); ctx.lineTo(i + spikeW/2, p.y - spikeH); ctx.lineTo(i + spikeW, p.y); ctx.fill();
                 }
@@ -202,34 +218,35 @@
 
         function update() {
             globalTime += 0.1;
+            if (shakeFrames > 0) shakeFrames--;
+
             if (!gameActive) {
                 deathTimer++;
-                if (deathTimer === 60) {
+                if (deathTimer === 90) { // Wait longer so we can admire the blood
                     document.getElementById('final-score').innerText = "PTS: " + score;
                     deathScreen.style.display = 'flex';
                 }
             }
+            
             if (player.state === 'intro') {
                 player.y += (player.targetY - player.y) * 0.05;
                 if (Math.abs(player.y - player.targetY) < 1) player.state = 'active';
             }
+            
             if (gameActive) {
                 player.x += (player.targetX - player.x) * 0.18;
-                player.x = Math.max(20, Math.min(width - 20, player.x));
+                player.x = Math.max(15, Math.min(width - 15, player.x));
                 
-                bgScroll += scrollSpeed * 0.3; // Parallax background
-                
+                bgScroll += scrollSpeed * 0.3; 
                 platforms.forEach(p => p.y -= scrollSpeed);
                 decors.forEach(d => d.y -= scrollSpeed);
 
                 platforms.forEach(p => {
                     if (player.y + 20 > p.y && player.y < p.y + 10) {
                         if (player.x > p.gapX && player.x < p.gapX + p.gapWidth) {
-                            if (!p.scored) { 
-                                p.scored = true; score += 10; scrollSpeed += 0.04; 
-                            }
+                            if (!p.scored) { p.scored = true; score += 10; scrollSpeed += 0.04; }
                         } else {
-                            gameActive = false; player.state = 'dead'; createParticles(player.x, p.y);
+                            gameActive = false; player.state = 'dead'; triggerGore(player.x, p.y);
                         }
                     }
                 });
@@ -237,13 +254,12 @@
                 if (platforms[0].y < -300) {
                     platforms.shift();
                     let y = platforms[platforms.length-1].y + platformGap;
-                    let gapX = Math.random()*(width-180)+20;
-                    let gapWidth = 155;
+                    let gapWidth = 95;
+                    let gapX = Math.random()*(width - gapWidth - 40) + 20;
                     platforms.push({ y, gapX, gapWidth, scored: false });
                     decors.push(...createDecor(y, gapX, gapWidth));
                 }
-                // Clean up old decor
-                decors = decors.filter(d => d.y > -100);
+                decors = decors.filter(d => d.y > -150);
             }
             draw();
             loopId = requestAnimationFrame(update);
@@ -251,39 +267,67 @@
 
         function draw() {
             ctx.clearRect(0, 0, width, height);
+            
+            // Screen Shake Logic
+            ctx.save();
+            if (shakeFrames > 0) {
+                let dx = (Math.random() - 0.5) * 20;
+                let dy = (Math.random() - 0.5) * 20;
+                ctx.translate(dx, dy);
+            }
 
             drawBackground();
             decors.forEach(d => drawDecor(d));
             drawPlatforms();
 
-            // 3. DRAW GLOWING PLAYER
-            ctx.save(); 
-            ctx.translate(player.x, player.y);
-            if (!gameActive) ctx.rotate(Math.PI / 1.7);
-            
-            ctx.shadowBlur = 15; 
-            ctx.shadowColor = gameActive ? "#fff" : "#ff0044";
-            ctx.strokeStyle = gameActive ? "#fff" : "#ff0044"; 
-            ctx.lineWidth = 4;
-            ctx.lineCap = "round";
-            
-            ctx.beginPath(); ctx.arc(0, -15, 7, 0, 7); ctx.stroke(); // Head
-            ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(0, 12); ctx.stroke(); // Body
-            
-            let flail = gameActive ? Math.sin(globalTime * 2) * 5 : 5;
-            ctx.beginPath(); ctx.moveTo(-12, 0 + flail); ctx.lineTo(12, 0 - flail); ctx.stroke(); // Arms
-            ctx.beginPath(); ctx.moveTo(0, 12); ctx.lineTo(-10, 25); ctx.moveTo(0, 12); ctx.lineTo(10, 25); ctx.stroke(); // Legs
-            
-            ctx.restore();
-
-            // 4. DEATH PARTICLES
+            // BLOOD PARTICLES (Drawn under player, on top of platforms)
             particles.forEach((p, i) => {
-                ctx.fillStyle = `rgba(255, 0, 68, ${p.life})`;
-                ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, 7); ctx.fill();
-                p.x += p.vx; p.y += p.vy; p.vy += 0.5; p.life -= 0.03;
-                if (p.life <= 0) particles.splice(i, 1);
+                if (p.life > 0) {
+                    ctx.fillStyle = p.color;
+                    if (p.splatted) {
+                        // Draw pooling blood
+                        ctx.globalAlpha = p.life > 1 ? 1 : p.life;
+                        ctx.beginPath(); ctx.ellipse(p.x, p.y, p.size * 2, p.size / 2, 0, 0, Math.PI*2); ctx.fill();
+                        ctx.globalAlpha = 1;
+                        p.y -= scrollSpeed; // Scroll with the platforms
+                    } else {
+                        // Draw flying, stretching blood
+                        let stretch = Math.max(1, Math.abs(p.vy) * 0.2);
+                        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Math.atan2(p.vy, p.vx));
+                        ctx.beginPath(); ctx.ellipse(0, 0, p.size * stretch, p.size, 0, 0, Math.PI*2); ctx.fill();
+                        ctx.restore();
+                        
+                        // Physics
+                        p.x += p.vx; p.y += p.vy; p.vy += 1.2; // Heavy Gravity
+                        
+                        // Floor collision
+                        let hitFloor = platforms.find(plat => p.y >= plat.y && p.y <= plat.y + 20 && (p.x < plat.gapX || p.x > plat.gapX + plat.gapWidth));
+                        if (hitFloor) {
+                            p.splatted = true; p.y = hitFloor.y; p.vy = 0; p.vx = 0;
+                        }
+                    }
+                    p.life -= 0.005; // Fade slowly
+                } else {
+                    particles.splice(i, 1);
+                }
             });
-            
+
+            // PLAYER
+            if (gameActive || deathTimer < 5) {
+                ctx.save(); ctx.translate(player.x, player.y);
+                ctx.shadowBlur = 15; ctx.shadowColor = "#fff"; ctx.strokeStyle = "#fff"; 
+                ctx.lineWidth = 4; ctx.lineCap = "round";
+                
+                ctx.beginPath(); ctx.arc(0, -15, 7, 0, 7); ctx.stroke(); 
+                ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(0, 12); ctx.stroke(); 
+                
+                let flail = gameActive ? Math.sin(globalTime * 2) * 6 : 6;
+                ctx.beginPath(); ctx.moveTo(-14, 2 + flail); ctx.lineTo(14, 2 - flail); ctx.stroke(); 
+                ctx.beginPath(); ctx.moveTo(0, 12); ctx.lineTo(-10, 26); ctx.moveTo(0, 12); ctx.lineTo(10, 26); ctx.stroke(); 
+                ctx.restore();
+            }
+
+            ctx.restore(); // Restore screen shake
             scoreEl.innerText = score;
         }
 
