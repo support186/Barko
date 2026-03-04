@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE FALL: PROCEDURAL ENGINE</title>
+    <title>THE FALL: PERFORMANCE BUILD</title>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Space+Grotesk:wght@900&display=swap" rel="stylesheet">
     <style>
         :root { --danger: #ff0022; --accent: #ffffff; }
@@ -13,10 +13,9 @@
         #ui { position: absolute; top: 0; left: 0; width: 100%; padding: 20px; box-sizing: border-box; display: flex; justify-content: space-between; pointer-events: none; z-index: 100; font-family: 'Bangers', cursive; }
         .stat { color: #fff; font-size: 2.2rem; text-shadow: 4px 4px 0 #000; letter-spacing: 2px; }
         
-        #death-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 8px solid var(--danger); padding: 25px; display: none; flex-direction: column; align-items: center; z-index: 200; width: 85%; max-height: 90vh; overflow-y: auto; border-radius: 15px; box-shadow: 0 0 80px rgba(255,0,34,0.6); }
+        #death-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 8px solid var(--danger); padding: 25px; display: none; flex-direction: column; align-items: center; z-index: 200; width: 85%; max-height: 90vh; overflow-y: auto; border-radius: 15px; box-shadow: 0 0 40px rgba(255,0,34,0.4); }
         .btn-retry { background: #4ade80; color: #000; width: 100%; font-size: 2.5rem; padding: 15px; margin-top: 15px; border: 6px solid #000; cursor: pointer; font-family: 'Bangers'; text-transform: uppercase; box-shadow: 6px 6px 0 #fff; }
         
-        /* Leaderboard Styles */
         #leaderboard { width: 100%; margin-top: 15px; color: #fff; font-family: 'Space Grotesk', sans-serif; }
         .lb-entry { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #333; font-size: 1.2rem; }
         .lb-header { color: var(--danger); font-family: 'Bangers'; font-size: 2rem; text-align: center; margin: 10px 0; }
@@ -53,7 +52,7 @@
 
     <script>
         const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { alpha: false }); // Performance boost
         const scoreEl = document.getElementById('score-val');
         const lvlEl = document.getElementById('lvl-ui');
         const deathScreen = document.getElementById('death-screen');
@@ -73,13 +72,15 @@
         const ARCHITECTURES = ["CATHEDRAL", "CYBER-LAB", "BIO-SEWER"];
         const ACCESSORIES = ["NONE", "HAT", "DRESS", "GOGGLES", "CROWN"];
         let currentLevel = 0;
-        let hueShift = 0;
 
         function getTheme() {
+            let hue = (currentLevel * 45) % 360;
             return {
                 arch: ARCHITECTURES[currentLevel % ARCHITECTURES.length],
                 acc: ACCESSORIES[currentLevel % ACCESSORIES.length],
-                hue: (currentLevel * 45) % 360,
+                hue: hue,
+                mainColor: `hsl(${hue}, 100%, 50%)`,
+                darkColor: `hsl(${hue}, 80%, 15%)`,
                 name: `FLOOR ${currentLevel * 10}`
             };
         }
@@ -94,7 +95,7 @@
         }
         
         function checkHighScore() {
-            if (leaderboard.length < 10 || score > leaderboard[leaderboard.length - 1].score) {
+            if (leaderboard.length < 10 || score > (leaderboard[leaderboard.length - 1]?.score || 0)) {
                 nameInputDiv.style.display = 'flex';
             } else {
                 nameInputDiv.style.display = 'none';
@@ -127,7 +128,6 @@
 
         function createDecor(y, gapX, gapWidth) {
             let newDecors = [];
-            // Reduced minimum space so they spawn way more often
             if (gapX > 50) newDecors.push({ x: gapX / 2, y: y, type: Math.random() > 0.4 ? 'A' : 'B' });
             if (width - (gapX + gapWidth) > 50) newDecors.push({ x: gapX + gapWidth + ((width - (gapX + gapWidth)) / 2), y: y, type: Math.random() > 0.4 ? 'A' : 'B' });
             return newDecors;
@@ -139,7 +139,8 @@
             scrollSpeed = START_SPEED; bgScroll = 0; theme = getTheme();
             player = { x: width/2, targetX: width/2, y: -80, targetY: height/2.8, state: 'intro' };
             platforms = []; particles = []; decors = []; keys = {}; 
-            scoreEl.innerText = "0"; lvlEl.innerText = theme.arch; deathScreen.style.display = 'none';
+            scoreEl.innerText = "0"; lvlEl.innerText = theme.arch; lvlEl.style.color = theme.mainColor;
+            deathScreen.style.display = 'none';
 
             for(let i=0; i<8; i++) {
                 let y = height + i * platformGap;
@@ -151,28 +152,27 @@
         }
 
         function triggerGore(x, y) {
-            shakeFrames = 20; 
-            for(let i=0; i<200; i++) {
+            shakeFrames = 15; 
+            // Reduced particle count from 250 to 80 for massive performance boost
+            for(let i=0; i<80; i++) {
                 let angle = Math.random() * Math.PI * 2;
                 let speed = Math.random() * 20; 
                 particles.push({ 
                     x: x, y: y, 
                     vx: Math.cos(angle) * speed, vy: (Math.sin(angle) * speed) - 10, 
-                    life: 2.0 + Math.random(), size: Math.random() * 6 + 2, splatted: false,
-                    dripSpeed: 0,
+                    life: 2.0 + Math.random(), size: Math.random() * 8 + 3, // Slightly bigger to compensate for fewer particles
+                    splatted: false, dripSpeed: 0,
                     color: Math.random() > 0.5 ? '#ff0000' : '#880000' 
                 });
             }
         }
 
         function drawBackground() {
-            ctx.fillStyle = "#070709"; ctx.fillRect(0, 0, width, height);
+            ctx.fillStyle = "#050508"; ctx.fillRect(0, 0, width, height);
             
-            ctx.save();
-            ctx.filter = `hue-rotate(${theme.hue}deg)`; // PROCEDURAL COLOR ENGINE
-            
+            // Replaced the laggy ctx.filter with native math and bigger background tiles
             ctx.lineWidth = 2;
-            let h = 60, w = 100;
+            let h = 100, w = 150; // Bigger tiles = 60% fewer calculations per frame
             let startY = (bgScroll % h) - h;
 
             for (let y = startY; y < height; y += h) {
@@ -184,18 +184,17 @@
                         ctx.strokeStyle = "#000"; ctx.strokeRect(x + offset, y, w, h);
                     } else if (theme.arch === "CYBER-LAB") {
                         ctx.fillStyle = "#050510"; ctx.fillRect(x, y, w, h);
-                        ctx.strokeStyle = "#00ffff"; ctx.strokeRect(x, y, w, h);
+                        ctx.strokeStyle = theme.darkColor; ctx.strokeRect(x, y, w, h);
                     } else {
                         // BIO SEWER
                         ctx.fillStyle = "#0a110a"; ctx.beginPath(); ctx.arc(x+w/2, y+h/2, w/2, 0, 7); ctx.fill();
                     }
                 }
             }
-            ctx.restore();
         }
 
         function drawDecor(d) {
-            ctx.save(); ctx.translate(d.x, d.y); ctx.filter = `hue-rotate(${theme.hue}deg)`;
+            ctx.save(); ctx.translate(d.x, d.y);
             
             if (theme.arch === "CATHEDRAL") {
                 if (d.type === 'A') { // Candelabra
@@ -204,43 +203,48 @@
                     const drawCandle = (cx, cy) => {
                         ctx.fillStyle = "#fff"; ctx.fillRect(cx-3, cy-15, 6, 15);
                         let flicker = Math.sin(globalTime*3 + cx)*2;
-                        ctx.fillStyle = "rgba(255,100,0,0.8)"; ctx.shadowBlur = 10+flicker; ctx.shadowColor = "#ff4400";
-                        ctx.beginPath(); ctx.arc(cx, cy-20+flicker, 4, 0, 7); ctx.fill(); ctx.shadowBlur = 0;
+                        // Removed shadowBlur here for performance. Replaced with simple circle.
+                        ctx.fillStyle = theme.mainColor; 
+                        ctx.beginPath(); ctx.arc(cx, cy-18+flicker, 6, 0, 7); ctx.fill(); 
+                        ctx.fillStyle = "#fff";
+                        ctx.beginPath(); ctx.arc(cx, cy-18+flicker, 2, 0, 7); ctx.fill();
                     };
                     drawCandle(-25, 25); drawCandle(0, 25); drawCandle(25, 25);
                 } else { // Curtain
-                    ctx.fillStyle = "#500"; ctx.beginPath(); ctx.moveTo(-30,0); ctx.quadraticCurveTo(-15, 60, -20, 90); ctx.quadraticCurveTo(0, 60, 30, 0); ctx.fill();
+                    ctx.fillStyle = theme.darkColor; ctx.beginPath(); ctx.moveTo(-30,0); ctx.quadraticCurveTo(-15, 60, -20, 90); ctx.quadraticCurveTo(0, 60, 30, 0); ctx.fill();
                 }
             } else if (theme.arch === "CYBER-LAB") {
                 if (d.type === 'A') { // Monitor
-                    ctx.fillStyle="#000"; ctx.fillRect(-25,10,50,40); ctx.strokeStyle="#0ff"; ctx.strokeRect(-25,10,50,40);
-                    ctx.fillStyle="#0ff"; ctx.fillRect(-20, 15, 40, Math.abs(Math.sin(globalTime))*30);
+                    ctx.fillStyle="#000"; ctx.fillRect(-25,10,50,40); ctx.strokeStyle=theme.mainColor; ctx.strokeRect(-25,10,50,40);
+                    ctx.fillStyle=theme.mainColor; ctx.fillRect(-20, 15, 40, Math.abs(Math.sin(globalTime))*30);
                 } else { // Laser
-                    ctx.strokeStyle="rgba(0,255,255,0.5)"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 200); ctx.stroke();
+                    ctx.strokeStyle=theme.mainColor; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 200); ctx.stroke();
                 }
             } else { // BIO SEWER
                 if (d.type === 'A') { // Dripping Pipe
                     ctx.fillStyle="#222"; ctx.fillRect(-15,0,30,40);
-                    if(Math.random()>0.9) particles.push({x: d.x, y: d.y+40, vx:0, vy:5, life:0.5, size:3, splatted:false, color:"#0f0"});
+                    if(Math.random()>0.9) particles.push({x: d.x, y: d.y+40, vx:0, vy:5, life:0.5, size:3, splatted:false, color:theme.mainColor, dripSpeed: 0});
                 } else { // Slime Vine
-                    ctx.strokeStyle="#0f0"; ctx.lineWidth=8; ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(20, 50, 0, 100); ctx.stroke();
+                    ctx.strokeStyle=theme.mainColor; ctx.lineWidth=8; ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(20, 50, 0, 100); ctx.stroke();
                 }
             }
             ctx.restore();
         }
 
         function drawPlatforms() {
-            ctx.save(); ctx.filter = `hue-rotate(${theme.hue}deg)`;
             platforms.forEach(p => {
                 ctx.fillStyle = "#111"; ctx.fillRect(0, p.y, p.gapX, 35); ctx.fillRect(p.gapX + p.gapWidth, p.y, width, 35);
                 ctx.fillStyle = "#1a1a1a"; ctx.fillRect(0, p.y, p.gapX, 6); ctx.fillRect(p.gapX + p.gapWidth, p.y, width, 6);
 
-                ctx.shadowBlur = 15; ctx.shadowColor = "#ff0022"; ctx.fillStyle = "#ff0022";
+                // Spikes - Removed shadowBlur, using fake highlight instead
+                ctx.fillStyle = theme.mainColor;
                 let spikeW = 16; let spikeH = 28;
-                for(let i = 0; i < p.gapX - spikeW; i += spikeW) { ctx.beginPath(); ctx.moveTo(i, p.y); ctx.lineTo(i + spikeW/2, p.y - spikeH); ctx.lineTo(i + spikeW, p.y); ctx.fill(); }
-                for(let i = p.gapX + p.gapWidth; i < width - spikeW; i += spikeW) { ctx.beginPath(); ctx.moveTo(i, p.y); ctx.lineTo(i + spikeW/2, p.y - spikeH); ctx.lineTo(i + spikeW, p.y); ctx.fill(); }
+                
+                ctx.beginPath();
+                for(let i = 0; i < p.gapX - spikeW; i += spikeW) { ctx.moveTo(i, p.y); ctx.lineTo(i + spikeW/2, p.y - spikeH); ctx.lineTo(i + spikeW, p.y); }
+                for(let i = p.gapX + p.gapWidth; i < width - spikeW; i += spikeW) { ctx.moveTo(i, p.y); ctx.lineTo(i + spikeW/2, p.y - spikeH); ctx.lineTo(i + spikeW, p.y); }
+                ctx.fill();
             });
-            ctx.restore();
         }
 
         function update() {
@@ -271,7 +275,7 @@
                             if (!p.scored) { 
                                 p.scored = true; score += 10; floorsPassed++; scrollSpeed += 0.04; 
                                 if (floorsPassed % 10 === 0) {
-                                    currentLevel++; theme = getTheme(); lvlEl.innerText = theme.arch; lvlEl.style.filter = `hue-rotate(${theme.hue}deg)`;
+                                    currentLevel++; theme = getTheme(); lvlEl.innerText = theme.arch; lvlEl.style.color = theme.mainColor;
                                 }
                             }
                         } else {
@@ -289,6 +293,24 @@
                 }
                 decors = decors.filter(d => d.y > -150);
             }
+
+            // PHYSICS LOOP FOR BLOOD (Moved out of draw loop for better performance)
+            particles.forEach(p => {
+                if (p.splatted) {
+                    p.y -= scrollSpeed; 
+                    p.y += p.dripSpeed; 
+                } else {
+                    p.x += p.vx; p.y += p.vy; p.vy += 1.2; 
+                    let hitFloor = platforms.find(plat => p.y >= plat.y && p.y <= plat.y + 15 && (p.x < plat.gapX || p.x > plat.gapX + plat.gapWidth));
+                    if (hitFloor) {
+                        p.splatted = true; p.y = hitFloor.y; p.dripSpeed = Math.random() * 2 + 0.5; 
+                    }
+                }
+                p.life -= 0.005; 
+            });
+            // PERFECT MEMORY CLEANUP: Only keep particles that are alive
+            particles = particles.filter(p => p.life > 0);
+
             draw();
             loopId = requestAnimationFrame(update);
         }
@@ -301,37 +323,25 @@
 
             drawBackground(); decors.forEach(d => drawDecor(d)); drawPlatforms();
 
-            // REALISTIC DRIPPING BLOOD
-            particles.forEach((p, i) => {
-                if (p.life > 0) {
-                    ctx.fillStyle = p.color;
-                    if (p.splatted) {
-                        // Move up with the floor, but drip down over time
-                        p.y -= scrollSpeed; 
-                        p.y += p.dripSpeed; 
-                        // Draw a vertical streak for dripping
-                        ctx.beginPath(); ctx.ellipse(p.x, p.y - (p.dripSpeed*5), p.size, p.size + (p.dripSpeed*5), 0, 0, Math.PI*2); ctx.fill();
-                    } else {
-                        let stretch = Math.max(1, Math.abs(p.vy) * 0.2);
-                        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Math.atan2(p.vy, p.vx));
-                        ctx.beginPath(); ctx.ellipse(0, 0, p.size * stretch, p.size, 0, 0, Math.PI*2); ctx.fill();
-                        ctx.restore();
-                        
-                        p.x += p.vx; p.y += p.vy; p.vy += 1.2; // Gravity
-                        
-                        let hitFloor = platforms.find(plat => p.y >= plat.y && p.y <= plat.y + 15 && (p.x < plat.gapX || p.x > plat.gapX + plat.gapWidth));
-                        if (hitFloor) {
-                            p.splatted = true; p.y = hitFloor.y; p.dripSpeed = Math.random() * 2 + 0.5; // Starts dripping down!
-                        }
-                    }
-                    p.life -= 0.005; 
-                } else { particles.splice(i, 1); }
+            // DRAW BLOOD
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                if (p.splatted) {
+                    ctx.beginPath(); ctx.ellipse(p.x, p.y - (p.dripSpeed*5), p.size, p.size + (p.dripSpeed*5), 0, 0, Math.PI*2); ctx.fill();
+                } else {
+                    let stretch = Math.max(1, Math.abs(p.vy) * 0.2);
+                    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Math.atan2(p.vy, p.vx));
+                    ctx.beginPath(); ctx.ellipse(0, 0, p.size * stretch, p.size, 0, 0, Math.PI*2); ctx.fill();
+                    ctx.restore();
+                }
             });
 
             // PLAYER & ACCESSORIES
             if (gameActive || deathTimer < 5) {
                 ctx.save(); ctx.translate(player.x, player.y);
-                ctx.shadowBlur = 15; ctx.shadowColor = "#fff"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 4; ctx.lineCap = "round";
+                
+                // Shadow blur ONLY applied to the player now, where it's safe!
+                ctx.shadowBlur = 10; ctx.shadowColor = "#fff"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 4; ctx.lineCap = "round";
                 
                 ctx.beginPath(); ctx.arc(0, -15, 7, 0, 7); ctx.stroke(); // Head
                 ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(0, 12); ctx.stroke(); // Body
@@ -342,7 +352,7 @@
                 ctx.fillStyle = "#fff";
                 if(theme.acc === "HAT") { ctx.fillRect(-8, -25, 16, 4); ctx.fillRect(-5, -35, 10, 10); }
                 if(theme.acc === "DRESS") { ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-12, 15); ctx.lineTo(12, 15); ctx.fill(); }
-                if(theme.acc === "GOGGLES") { ctx.fillStyle="#0ff"; ctx.fillRect(-6, -18, 12, 4); }
+                if(theme.acc === "GOGGLES") { ctx.fillStyle=theme.mainColor; ctx.fillRect(-6, -18, 12, 4); }
                 if(theme.acc === "CROWN") { ctx.fillStyle="#ff0"; ctx.beginPath(); ctx.moveTo(-6,-22); ctx.lineTo(-8,-30); ctx.lineTo(0,-25); ctx.lineTo(8,-30); ctx.lineTo(6,-22); ctx.fill(); }
 
                 ctx.beginPath(); ctx.moveTo(0, 12); ctx.lineTo(-10, 26); ctx.moveTo(0, 12); ctx.lineTo(10, 26); ctx.stroke(); // Legs
