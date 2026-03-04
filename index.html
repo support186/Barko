@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE FALL: DIRECTOR'S CUT</title>
+    <title>THE FALL: PROCEDURAL ENGINE</title>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Space+Grotesk:wght@900&display=swap" rel="stylesheet">
     <style>
         :root { --danger: #ff0022; --accent: #ffffff; }
@@ -12,8 +12,17 @@
         canvas { display: block; width: 100%; height: 100%; cursor: none; }
         #ui { position: absolute; top: 0; left: 0; width: 100%; padding: 20px; box-sizing: border-box; display: flex; justify-content: space-between; pointer-events: none; z-index: 100; font-family: 'Bangers', cursive; }
         .stat { color: #fff; font-size: 2.2rem; text-shadow: 4px 4px 0 #000; letter-spacing: 2px; }
-        #death-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 8px solid var(--danger); padding: 40px; display: none; flex-direction: column; align-items: center; z-index: 200; width: 85%; border-radius: 15px; box-shadow: 0 0 80px rgba(255,0,34,0.6); }
-        .btn-retry { background: #4ade80; color: #000; width: 100%; font-size: 3rem; padding: 15px; margin-top: 25px; border: 6px solid #000; cursor: pointer; font-family: 'Bangers'; text-transform: uppercase; box-shadow: 6px 6px 0 #fff; }
+        
+        #death-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 8px solid var(--danger); padding: 25px; display: none; flex-direction: column; align-items: center; z-index: 200; width: 85%; max-height: 90vh; overflow-y: auto; border-radius: 15px; box-shadow: 0 0 80px rgba(255,0,34,0.6); }
+        .btn-retry { background: #4ade80; color: #000; width: 100%; font-size: 2.5rem; padding: 15px; margin-top: 15px; border: 6px solid #000; cursor: pointer; font-family: 'Bangers'; text-transform: uppercase; box-shadow: 6px 6px 0 #fff; }
+        
+        /* Leaderboard Styles */
+        #leaderboard { width: 100%; margin-top: 15px; color: #fff; font-family: 'Space Grotesk', sans-serif; }
+        .lb-entry { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #333; font-size: 1.2rem; }
+        .lb-header { color: var(--danger); font-family: 'Bangers'; font-size: 2rem; text-align: center; margin: 10px 0; }
+        #name-input-div { display: none; width: 100%; flex-direction: column; align-items: center; margin-top: 10px; }
+        #name-input { width: 80%; padding: 10px; font-size: 1.5rem; font-family: 'Bangers'; text-align: center; text-transform: uppercase; border: 4px solid #fff; background: #111; color: #fff; margin-bottom: 10px; }
+        .btn-save { background: var(--danger); color: #fff; font-size: 1.5rem; padding: 10px 20px; border: none; cursor: pointer; font-family: 'Bangers'; }
     </style>
 </head>
 <body>
@@ -24,9 +33,21 @@
         </div>
         <canvas id="gameCanvas"></canvas>
         <div id="death-screen">
-            <h2 style="color:#fff; font-size: 5rem; margin:0; text-shadow: 5px 5px 0 var(--danger);">WASTED</h2>
-            <p id="final-score" style="color:var(--accent); font-size: 2.2rem; margin: 15px; font-family: 'Bangers';"></p>
-            <button class="btn-retry" onclick="init()">REBOOT</button>
+            <h2 style="color:#fff; font-size: 4rem; margin:0; text-shadow: 5px 5px 0 var(--danger);">WASTED</h2>
+            <p id="final-score" style="color:var(--accent); font-size: 2.2rem; margin: 5px; font-family: 'Bangers';"></p>
+            
+            <div id="name-input-div">
+                <span style="color:#4ade80; font-family:'Bangers'; font-size:1.8rem;">NEW TOP 10 SCORE!</span>
+                <input type="text" id="name-input" maxlength="10" placeholder="ENTER NAME">
+                <button class="btn-save" onclick="saveScore()">SAVE SCORE</button>
+            </div>
+
+            <div id="leaderboard">
+                <div class="lb-header">TOP 10 SURVIVORS</div>
+                <div id="lb-list"></div>
+            </div>
+
+            <button class="btn-retry" onclick="init()">START AGAIN</button>
         </div>
     </div>
 
@@ -34,186 +55,192 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreEl = document.getElementById('score-val');
+        const lvlEl = document.getElementById('lvl-ui');
         const deathScreen = document.getElementById('death-screen');
+        const nameInputDiv = document.getElementById('name-input-div');
+        const lbList = document.getElementById('lb-list');
 
-        let width, height, player, platforms, particles, decors, score, gameActive, keys, deathTimer, loopId;
+        let width, height, player, platforms, particles, decors, score, floorsPassed, gameActive, keys, deathTimer, loopId;
         
         const START_SPEED = 5.4; 
-        const START_GAP = 390;
         let scrollSpeed = START_SPEED;
-        let platformGap = START_GAP;
+        let platformGap = 390;
         let bgScroll = 0;
         let globalTime = 0;
         let shakeFrames = 0;
 
-        function resize() {
-            width = canvas.width = Math.min(window.innerWidth, 500);
-            height = canvas.height = window.innerHeight;
+        // PROCEDURAL ENGINE DATA
+        const ARCHITECTURES = ["CATHEDRAL", "CYBER-LAB", "BIO-SEWER"];
+        const ACCESSORIES = ["NONE", "HAT", "DRESS", "GOGGLES", "CROWN"];
+        let currentLevel = 0;
+        let hueShift = 0;
+
+        function getTheme() {
+            return {
+                arch: ARCHITECTURES[currentLevel % ARCHITECTURES.length],
+                acc: ACCESSORIES[currentLevel % ACCESSORIES.length],
+                hue: (currentLevel * 45) % 360,
+                name: `FLOOR ${currentLevel * 10}`
+            };
         }
-        window.addEventListener('resize', resize);
-        resize();
+        let theme = getTheme();
 
-        window.addEventListener('keydown', e => { keys[e.code] = true; if(e.code === 'Space' && !gameActive && deathTimer > 30) init(); });
-        window.addEventListener('keyup', e => { keys[e.code] = false; });
+        // LEADERBOARD LOGIC
+        let leaderboard = JSON.parse(localStorage.getItem('barko_lb')) || [];
+        function updateLeaderboardUI() {
+            lbList.innerHTML = leaderboard.map((entry, i) => 
+                `<div class="lb-entry"><span>${i+1}. ${entry.name}</span><span>${entry.score}</span></div>`
+            ).join('');
+        }
         
-        const handleInput = (clientX) => {
-            if(!gameActive) return;
-            const rect = canvas.getBoundingClientRect();
-            player.targetX = (clientX - rect.left) * (width / rect.width);
-        };
+        function checkHighScore() {
+            if (leaderboard.length < 10 || score > leaderboard[leaderboard.length - 1].score) {
+                nameInputDiv.style.display = 'flex';
+            } else {
+                nameInputDiv.style.display = 'none';
+            }
+            updateLeaderboardUI();
+            document.getElementById('final-score').innerText = "PTS: " + score;
+            deathScreen.style.display = 'flex';
+        }
 
+        function saveScore() {
+            let name = document.getElementById('name-input').value || 'ANON';
+            leaderboard.push({ name: name, score: score });
+            leaderboard.sort((a, b) => b.score - a.score);
+            leaderboard = leaderboard.slice(0, 10);
+            localStorage.setItem('barko_lb', JSON.stringify(leaderboard));
+            nameInputDiv.style.display = 'none';
+            updateLeaderboardUI();
+        }
+
+        function resize() { width = canvas.width = Math.min(window.innerWidth, 500); height = canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resize); resize();
+
+        window.addEventListener('keydown', e => { keys[e.code] = true; if(e.code === 'Space' && !gameActive && deathTimer > 30 && nameInputDiv.style.display === 'none') init(); });
+        window.addEventListener('keyup', e => { keys[e.code] = false; });
+        const handleInput = (clientX) => { if(!gameActive) return; const rect = canvas.getBoundingClientRect(); player.targetX = (clientX - rect.left) * (width / rect.width); };
         canvas.addEventListener('touchstart', e => handleInput(e.touches[0].clientX), {passive:false});
         canvas.addEventListener('touchmove', e => { handleInput(e.touches[0].clientX); e.preventDefault(); }, {passive:false});
         canvas.addEventListener('mousedown', e => handleInput(e.clientX));
         canvas.addEventListener('mousemove', e => { if(e.buttons > 0) handleInput(e.clientX); });
 
         function createDecor(y, gapX, gapWidth) {
-            let leftSpace = gapX;
-            let rightSpace = width - (gapX + gapWidth);
             let newDecors = [];
-            
-            if (leftSpace > 90) newDecors.push({ x: gapX / 2, y: y, type: Math.random() > 0.4 ? 'CANDELABRA' : 'CURTAIN' });
-            if (rightSpace > 90) newDecors.push({ x: gapX + gapWidth + (rightSpace / 2), y: y, type: Math.random() > 0.4 ? 'CANDELABRA' : 'CURTAIN' });
+            // Reduced minimum space so they spawn way more often
+            if (gapX > 50) newDecors.push({ x: gapX / 2, y: y, type: Math.random() > 0.4 ? 'A' : 'B' });
+            if (width - (gapX + gapWidth) > 50) newDecors.push({ x: gapX + gapWidth + ((width - (gapX + gapWidth)) / 2), y: y, type: Math.random() > 0.4 ? 'A' : 'B' });
             return newDecors;
         }
 
         function init() {
             if (loopId) cancelAnimationFrame(loopId);
-            gameActive = true; score = 0; deathTimer = 0; shakeFrames = 0;
-            scrollSpeed = START_SPEED; bgScroll = 0;
+            gameActive = true; score = 0; floorsPassed = 0; currentLevel = 0; deathTimer = 0; shakeFrames = 0;
+            scrollSpeed = START_SPEED; bgScroll = 0; theme = getTheme();
             player = { x: width/2, targetX: width/2, y: -80, targetY: height/2.8, state: 'intro' };
             platforms = []; particles = []; decors = []; keys = {}; 
-            scoreEl.innerText = "0";
+            scoreEl.innerText = "0"; lvlEl.innerText = theme.arch; deathScreen.style.display = 'none';
 
             for(let i=0; i<8; i++) {
                 let y = height + i * platformGap;
-                let gapWidth = 95; // MUUUCH SMALLER GAP
-                let gapX = Math.random()*(width - gapWidth - 40) + 20; 
+                let gapWidth = 95; let gapX = Math.random()*(width - gapWidth - 40) + 20; 
                 platforms.push({ y, gapX, gapWidth, scored: false });
                 decors.push(...createDecor(y, gapX, gapWidth));
             }
-            deathScreen.style.display = 'none';
             update();
         }
 
-        // KILL BILL BLOOD ENGINE
         function triggerGore(x, y) {
-            shakeFrames = 20; // Massive screen shake
-            for(let i=0; i<250; i++) {
+            shakeFrames = 20; 
+            for(let i=0; i<200; i++) {
                 let angle = Math.random() * Math.PI * 2;
-                let speed = Math.random() * 25; // High velocity spray
+                let speed = Math.random() * 20; 
                 particles.push({ 
-                    x: x, 
-                    y: y, 
-                    vx: Math.cos(angle) * speed, 
-                    vy: (Math.sin(angle) * speed) - 10, // Burst upwards
-                    life: 1.5 + Math.random(), 
-                    size: Math.random() * 5 + 2,
-                    splatted: false,
-                    color: Math.random() > 0.5 ? '#ff0000' : '#880000' // Bright arterial + dark venous
+                    x: x, y: y, 
+                    vx: Math.cos(angle) * speed, vy: (Math.sin(angle) * speed) - 10, 
+                    life: 2.0 + Math.random(), size: Math.random() * 6 + 2, splatted: false,
+                    dripSpeed: 0,
+                    color: Math.random() > 0.5 ? '#ff0000' : '#880000' 
                 });
             }
         }
 
         function drawBackground() {
-            ctx.fillStyle = "#070709"; 
-            ctx.fillRect(0, 0, width, height);
+            ctx.fillStyle = "#070709"; ctx.fillRect(0, 0, width, height);
+            
+            ctx.save();
+            ctx.filter = `hue-rotate(${theme.hue}deg)`; // PROCEDURAL COLOR ENGINE
             
             ctx.lineWidth = 2;
-            let brickH = 60; let brickW = 100;
-            let startY = (bgScroll % brickH) - brickH;
+            let h = 60, w = 100;
+            let startY = (bgScroll % h) - h;
 
-            for (let y = startY; y < height; y += brickH) {
-                let offset = (Math.round(y / brickH) % 2 === 0) ? 0 : brickW / 2;
-                for (let x = -brickW; x < width; x += brickW) {
-                    ctx.fillStyle = (Math.abs(x*y) % 5 === 0) ? "#0d0d11" : "#121216";
-                    ctx.fillRect(x + offset, y, brickW, brickH);
-                    ctx.strokeStyle = "#000"; ctx.strokeRect(x + offset, y, brickW, brickH);
-                    ctx.strokeStyle = "rgba(255,255,255,0.02)"; ctx.strokeRect(x + offset + 2, y + 2, brickW - 4, brickH - 4);
+            for (let y = startY; y < height; y += h) {
+                let offset = (Math.round(y / h) % 2 === 0) ? 0 : w / 2;
+                for (let x = -w; x < width; x += w) {
+                    if(theme.arch === "CATHEDRAL") {
+                        ctx.fillStyle = (Math.abs(x*y) % 5 === 0) ? "#0d0d11" : "#121216";
+                        ctx.fillRect(x + offset, y, w, h);
+                        ctx.strokeStyle = "#000"; ctx.strokeRect(x + offset, y, w, h);
+                    } else if (theme.arch === "CYBER-LAB") {
+                        ctx.fillStyle = "#050510"; ctx.fillRect(x, y, w, h);
+                        ctx.strokeStyle = "#00ffff"; ctx.strokeRect(x, y, w, h);
+                    } else {
+                        // BIO SEWER
+                        ctx.fillStyle = "#0a110a"; ctx.beginPath(); ctx.arc(x+w/2, y+h/2, w/2, 0, 7); ctx.fill();
+                    }
                 }
             }
+            ctx.restore();
         }
 
         function drawDecor(d) {
-            ctx.save(); ctx.translate(d.x, d.y);
+            ctx.save(); ctx.translate(d.x, d.y); ctx.filter = `hue-rotate(${theme.hue}deg)`;
             
-            if (d.type === 'CANDELABRA') {
-                // Chains
-                ctx.strokeStyle = "#111"; ctx.lineWidth = 3;
-                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 50); ctx.stroke();
-                
-                // Ornate Iron Arms (Bezier Curves)
-                ctx.strokeStyle = "#151515"; ctx.lineWidth = 6; ctx.lineCap = "round";
-                ctx.beginPath();
-                ctx.moveTo(0, 45); ctx.quadraticCurveTo(-45, 80, -35, 35); // Left arm
-                ctx.moveTo(0, 45); ctx.quadraticCurveTo(45, 80, 35, 35);  // Right arm
-                ctx.stroke();
-
-                // Center Base
-                ctx.fillStyle = "#111";
-                ctx.beginPath(); ctx.moveTo(-15, 30); ctx.lineTo(15, 30); ctx.lineTo(0, 60); ctx.fill();
-
-                // Candles (Tapered)
-                const drawCandle = (cx, cy) => {
-                    ctx.fillStyle = "#ddccaa";
-                    ctx.beginPath(); ctx.moveTo(cx-4, cy); ctx.lineTo(cx+4, cy); ctx.lineTo(cx+3, cy-20); ctx.lineTo(cx-3, cy-20); ctx.fill();
-                    
-                    // Flame & Glow
-                    let flicker = Math.sin(globalTime * 2 + cx) * 3;
-                    ctx.fillStyle = "rgba(255, 150, 0, 0.9)";
-                    ctx.shadowBlur = 20 + flicker; ctx.shadowColor = "#ff5500";
-                    ctx.beginPath(); ctx.arc(cx, cy-25 + flicker/3, 5, 0, Math.PI * 2); ctx.fill();
-                    // White hot center
-                    ctx.fillStyle = "#fff"; ctx.shadowBlur = 0;
-                    ctx.beginPath(); ctx.arc(cx, cy-24 + flicker/3, 2, 0, Math.PI * 2); ctx.fill();
-                };
-                
-                drawCandle(-35, 35); drawCandle(0, 30); drawCandle(35, 35);
-
-            } else if (d.type === 'CURTAIN') {
-                // Heavy Draped Curtains
-                let cw = 40; 
-                
-                // Back fold
-                ctx.fillStyle = "#550000";
-                ctx.beginPath(); ctx.moveTo(-cw, 0); ctx.lineTo(cw, 0); ctx.quadraticCurveTo(0, 80, 0, 110); ctx.fill();
-
-                // Front folds
-                ctx.fillStyle = "#880000";
-                ctx.beginPath(); ctx.moveTo(-cw, 0); ctx.quadraticCurveTo(-cw/2, 60, -cw+10, 130); ctx.quadraticCurveTo(0, 100, cw/2, 0); ctx.fill();
-                ctx.fillStyle = "#770000";
-                ctx.beginPath(); ctx.moveTo(cw/2, 0); ctx.quadraticCurveTo(cw, 60, cw-10, 120); ctx.quadraticCurveTo(0, 90, -cw/4, 0); ctx.fill();
-
-                // Gold Trim
-                ctx.strokeStyle = "#cc9900"; ctx.lineWidth = 3;
-                ctx.beginPath(); ctx.moveTo(-cw, 0); ctx.quadraticCurveTo(-cw/2, 60, -cw+10, 130); ctx.stroke();
+            if (theme.arch === "CATHEDRAL") {
+                if (d.type === 'A') { // Candelabra
+                    ctx.strokeStyle = "#111"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 40); ctx.stroke();
+                    ctx.strokeStyle = "#151515"; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(0, 35); ctx.quadraticCurveTo(-35, 60, -25, 25); ctx.moveTo(0, 35); ctx.quadraticCurveTo(35, 60, 25, 25); ctx.stroke();
+                    const drawCandle = (cx, cy) => {
+                        ctx.fillStyle = "#fff"; ctx.fillRect(cx-3, cy-15, 6, 15);
+                        let flicker = Math.sin(globalTime*3 + cx)*2;
+                        ctx.fillStyle = "rgba(255,100,0,0.8)"; ctx.shadowBlur = 10+flicker; ctx.shadowColor = "#ff4400";
+                        ctx.beginPath(); ctx.arc(cx, cy-20+flicker, 4, 0, 7); ctx.fill(); ctx.shadowBlur = 0;
+                    };
+                    drawCandle(-25, 25); drawCandle(0, 25); drawCandle(25, 25);
+                } else { // Curtain
+                    ctx.fillStyle = "#500"; ctx.beginPath(); ctx.moveTo(-30,0); ctx.quadraticCurveTo(-15, 60, -20, 90); ctx.quadraticCurveTo(0, 60, 30, 0); ctx.fill();
+                }
+            } else if (theme.arch === "CYBER-LAB") {
+                if (d.type === 'A') { // Monitor
+                    ctx.fillStyle="#000"; ctx.fillRect(-25,10,50,40); ctx.strokeStyle="#0ff"; ctx.strokeRect(-25,10,50,40);
+                    ctx.fillStyle="#0ff"; ctx.fillRect(-20, 15, 40, Math.abs(Math.sin(globalTime))*30);
+                } else { // Laser
+                    ctx.strokeStyle="rgba(0,255,255,0.5)"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 200); ctx.stroke();
+                }
+            } else { // BIO SEWER
+                if (d.type === 'A') { // Dripping Pipe
+                    ctx.fillStyle="#222"; ctx.fillRect(-15,0,30,40);
+                    if(Math.random()>0.9) particles.push({x: d.x, y: d.y+40, vx:0, vy:5, life:0.5, size:3, splatted:false, color:"#0f0"});
+                } else { // Slime Vine
+                    ctx.strokeStyle="#0f0"; ctx.lineWidth=8; ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(20, 50, 0, 100); ctx.stroke();
+                }
             }
             ctx.restore();
         }
 
         function drawPlatforms() {
+            ctx.save(); ctx.filter = `hue-rotate(${theme.hue}deg)`;
             platforms.forEach(p => {
-                ctx.fillStyle = "#111";
-                ctx.fillRect(0, p.y, p.gapX, 35);
-                ctx.fillRect(p.gapX + p.gapWidth, p.y, width, 35);
-                
-                ctx.fillStyle = "#1a1a1a";
-                ctx.fillRect(0, p.y, p.gapX, 6);
-                ctx.fillRect(p.gapX + p.gapWidth, p.y, width, 6);
+                ctx.fillStyle = "#111"; ctx.fillRect(0, p.y, p.gapX, 35); ctx.fillRect(p.gapX + p.gapWidth, p.y, width, 35);
+                ctx.fillStyle = "#1a1a1a"; ctx.fillRect(0, p.y, p.gapX, 6); ctx.fillRect(p.gapX + p.gapWidth, p.y, width, 6);
 
-                // NEON SPIKES
-                ctx.save();
                 ctx.shadowBlur = 15; ctx.shadowColor = "#ff0022"; ctx.fillStyle = "#ff0022";
                 let spikeW = 16; let spikeH = 28;
-                
-                for(let i = 0; i < p.gapX - spikeW; i += spikeW) {
-                    ctx.beginPath(); ctx.moveTo(i, p.y); ctx.lineTo(i + spikeW/2, p.y - spikeH); ctx.lineTo(i + spikeW, p.y); ctx.fill();
-                }
-                for(let i = p.gapX + p.gapWidth; i < width - spikeW; i += spikeW) {
-                    ctx.beginPath(); ctx.moveTo(i, p.y); ctx.lineTo(i + spikeW/2, p.y - spikeH); ctx.lineTo(i + spikeW, p.y); ctx.fill();
-                }
-                ctx.restore();
+                for(let i = 0; i < p.gapX - spikeW; i += spikeW) { ctx.beginPath(); ctx.moveTo(i, p.y); ctx.lineTo(i + spikeW/2, p.y - spikeH); ctx.lineTo(i + spikeW, p.y); ctx.fill(); }
+                for(let i = p.gapX + p.gapWidth; i < width - spikeW; i += spikeW) { ctx.beginPath(); ctx.moveTo(i, p.y); ctx.lineTo(i + spikeW/2, p.y - spikeH); ctx.lineTo(i + spikeW, p.y); ctx.fill(); }
             });
+            ctx.restore();
         }
 
         function update() {
@@ -222,10 +249,7 @@
 
             if (!gameActive) {
                 deathTimer++;
-                if (deathTimer === 90) { // Wait longer so we can admire the blood
-                    document.getElementById('final-score').innerText = "PTS: " + score;
-                    deathScreen.style.display = 'flex';
-                }
+                if (deathTimer === 90) checkHighScore();
             }
             
             if (player.state === 'intro') {
@@ -244,7 +268,12 @@
                 platforms.forEach(p => {
                     if (player.y + 20 > p.y && player.y < p.y + 10) {
                         if (player.x > p.gapX && player.x < p.gapX + p.gapWidth) {
-                            if (!p.scored) { p.scored = true; score += 10; scrollSpeed += 0.04; }
+                            if (!p.scored) { 
+                                p.scored = true; score += 10; floorsPassed++; scrollSpeed += 0.04; 
+                                if (floorsPassed % 10 === 0) {
+                                    currentLevel++; theme = getTheme(); lvlEl.innerText = theme.arch; lvlEl.style.filter = `hue-rotate(${theme.hue}deg)`;
+                                }
+                            }
                         } else {
                             gameActive = false; player.state = 'dead'; triggerGore(player.x, p.y);
                         }
@@ -254,8 +283,7 @@
                 if (platforms[0].y < -300) {
                     platforms.shift();
                     let y = platforms[platforms.length-1].y + platformGap;
-                    let gapWidth = 95;
-                    let gapX = Math.random()*(width - gapWidth - 40) + 20;
+                    let gapWidth = 95; let gapX = Math.random()*(width - gapWidth - 40) + 20;
                     platforms.push({ y, gapX, gapWidth, scored: false });
                     decors.push(...createDecor(y, gapX, gapWidth));
                 }
@@ -268,66 +296,60 @@
         function draw() {
             ctx.clearRect(0, 0, width, height);
             
-            // Screen Shake Logic
             ctx.save();
-            if (shakeFrames > 0) {
-                let dx = (Math.random() - 0.5) * 20;
-                let dy = (Math.random() - 0.5) * 20;
-                ctx.translate(dx, dy);
-            }
+            if (shakeFrames > 0) ctx.translate((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
 
-            drawBackground();
-            decors.forEach(d => drawDecor(d));
-            drawPlatforms();
+            drawBackground(); decors.forEach(d => drawDecor(d)); drawPlatforms();
 
-            // BLOOD PARTICLES (Drawn under player, on top of platforms)
+            // REALISTIC DRIPPING BLOOD
             particles.forEach((p, i) => {
                 if (p.life > 0) {
                     ctx.fillStyle = p.color;
                     if (p.splatted) {
-                        // Draw pooling blood
-                        ctx.globalAlpha = p.life > 1 ? 1 : p.life;
-                        ctx.beginPath(); ctx.ellipse(p.x, p.y, p.size * 2, p.size / 2, 0, 0, Math.PI*2); ctx.fill();
-                        ctx.globalAlpha = 1;
-                        p.y -= scrollSpeed; // Scroll with the platforms
+                        // Move up with the floor, but drip down over time
+                        p.y -= scrollSpeed; 
+                        p.y += p.dripSpeed; 
+                        // Draw a vertical streak for dripping
+                        ctx.beginPath(); ctx.ellipse(p.x, p.y - (p.dripSpeed*5), p.size, p.size + (p.dripSpeed*5), 0, 0, Math.PI*2); ctx.fill();
                     } else {
-                        // Draw flying, stretching blood
                         let stretch = Math.max(1, Math.abs(p.vy) * 0.2);
                         ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Math.atan2(p.vy, p.vx));
                         ctx.beginPath(); ctx.ellipse(0, 0, p.size * stretch, p.size, 0, 0, Math.PI*2); ctx.fill();
                         ctx.restore();
                         
-                        // Physics
-                        p.x += p.vx; p.y += p.vy; p.vy += 1.2; // Heavy Gravity
+                        p.x += p.vx; p.y += p.vy; p.vy += 1.2; // Gravity
                         
-                        // Floor collision
-                        let hitFloor = platforms.find(plat => p.y >= plat.y && p.y <= plat.y + 20 && (p.x < plat.gapX || p.x > plat.gapX + plat.gapWidth));
+                        let hitFloor = platforms.find(plat => p.y >= plat.y && p.y <= plat.y + 15 && (p.x < plat.gapX || p.x > plat.gapX + plat.gapWidth));
                         if (hitFloor) {
-                            p.splatted = true; p.y = hitFloor.y; p.vy = 0; p.vx = 0;
+                            p.splatted = true; p.y = hitFloor.y; p.dripSpeed = Math.random() * 2 + 0.5; // Starts dripping down!
                         }
                     }
-                    p.life -= 0.005; // Fade slowly
-                } else {
-                    particles.splice(i, 1);
-                }
+                    p.life -= 0.005; 
+                } else { particles.splice(i, 1); }
             });
 
-            // PLAYER
+            // PLAYER & ACCESSORIES
             if (gameActive || deathTimer < 5) {
                 ctx.save(); ctx.translate(player.x, player.y);
-                ctx.shadowBlur = 15; ctx.shadowColor = "#fff"; ctx.strokeStyle = "#fff"; 
-                ctx.lineWidth = 4; ctx.lineCap = "round";
+                ctx.shadowBlur = 15; ctx.shadowColor = "#fff"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 4; ctx.lineCap = "round";
                 
-                ctx.beginPath(); ctx.arc(0, -15, 7, 0, 7); ctx.stroke(); 
-                ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(0, 12); ctx.stroke(); 
-                
+                ctx.beginPath(); ctx.arc(0, -15, 7, 0, 7); ctx.stroke(); // Head
+                ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(0, 12); ctx.stroke(); // Body
                 let flail = gameActive ? Math.sin(globalTime * 2) * 6 : 6;
-                ctx.beginPath(); ctx.moveTo(-14, 2 + flail); ctx.lineTo(14, 2 - flail); ctx.stroke(); 
-                ctx.beginPath(); ctx.moveTo(0, 12); ctx.lineTo(-10, 26); ctx.moveTo(0, 12); ctx.lineTo(10, 26); ctx.stroke(); 
+                ctx.beginPath(); ctx.moveTo(-14, 2 + flail); ctx.lineTo(14, 2 - flail); ctx.stroke(); // Arms
+                
+                // Accessories
+                ctx.fillStyle = "#fff";
+                if(theme.acc === "HAT") { ctx.fillRect(-8, -25, 16, 4); ctx.fillRect(-5, -35, 10, 10); }
+                if(theme.acc === "DRESS") { ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-12, 15); ctx.lineTo(12, 15); ctx.fill(); }
+                if(theme.acc === "GOGGLES") { ctx.fillStyle="#0ff"; ctx.fillRect(-6, -18, 12, 4); }
+                if(theme.acc === "CROWN") { ctx.fillStyle="#ff0"; ctx.beginPath(); ctx.moveTo(-6,-22); ctx.lineTo(-8,-30); ctx.lineTo(0,-25); ctx.lineTo(8,-30); ctx.lineTo(6,-22); ctx.fill(); }
+
+                ctx.beginPath(); ctx.moveTo(0, 12); ctx.lineTo(-10, 26); ctx.moveTo(0, 12); ctx.lineTo(10, 26); ctx.stroke(); // Legs
                 ctx.restore();
             }
 
-            ctx.restore(); // Restore screen shake
+            ctx.restore(); 
             scoreEl.innerText = score;
         }
 
