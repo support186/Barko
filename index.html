@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE FALL: RAW SPRITE BUILD</title>
+    <title>THE FALL: NATIVE CATHEDRAL</title>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Space+Grotesk:wght@900&display=swap" rel="stylesheet">
     <style>
         :root { --danger: #ff0044; --accent: #ffffff; }
         body { margin: 0; padding: 0; overflow: hidden; background: #000; font-family: 'Space Grotesk', sans-serif; display: flex; justify-content: center; touch-action: none; }
-        #game-wrap { width: 100vw; height: 100vh; max-width: 500px; position: relative; background: #050505; border-left: 5px solid #222; border-right: 5px solid #222; overflow: hidden; }
+        #game-wrap { width: 100vw; height: 100vh; max-width: 500px; position: relative; background: #050505; border-left: 5px solid #111; border-right: 5px solid #111; overflow: hidden; }
         canvas { display: block; width: 100%; height: 100%; cursor: none; }
         #ui { position: absolute; top: 0; left: 0; width: 100%; padding: 20px; box-sizing: border-box; display: flex; justify-content: space-between; pointer-events: none; z-index: 100; font-family: 'Bangers', cursive; }
         .stat { color: #fff; font-size: 2.2rem; text-shadow: 4px 4px 0 #000; letter-spacing: 2px; }
@@ -36,23 +36,14 @@
         const scoreEl = document.getElementById('score-val');
         const deathScreen = document.getElementById('death-screen');
 
-        let width, height, player, platforms, particles, score, floorsPassed, gameActive, keys, deathTimer, loopId;
+        let width, height, player, platforms, particles, decors, score, gameActive, keys, deathTimer, loopId;
         
         const START_SPEED = 5.4; 
         const START_GAP = 390;
         let scrollSpeed = START_SPEED;
         let platformGap = START_GAP;
         let bgScroll = 0;
-
-        // --- BYPASS BROWSER SECURITY WITH RAW GITHUB URLS ---
-        const RAW_URL = "https://raw.githubusercontent.com/support186/Barko/main/";
-        const images = { bg: new Image(), spike: new Image(), base: new Image(), player: new Image() };
-        
-        // This forces the browser to download the exact raw files, ignoring MIME type mismatch
-        images.bg.src = RAW_URL + "bg_cathedral.png"; 
-        images.spike.src = RAW_URL + "spike_glow.png";
-        images.base.src = RAW_URL + "platform_base.png";
-        images.player.src = RAW_URL + "player_idle.png";
+        let globalTime = 0;
 
         function resize() {
             width = canvas.width = Math.min(window.innerWidth, 500);
@@ -75,27 +66,142 @@
         canvas.addEventListener('mousedown', e => handleInput(e.clientX));
         canvas.addEventListener('mousemove', e => { if(e.buttons > 0) handleInput(e.clientX); });
 
+        function createDecor(y, gapX, gapWidth) {
+            let leftSpace = gapX;
+            let rightSpace = width - (gapX + gapWidth);
+            let newDecors = [];
+            
+            // Add items to left block
+            if (leftSpace > 80) {
+                newDecors.push({ x: gapX / 2, y: y, type: Math.random() > 0.5 ? 'CHANDELIER' : 'BANNER' });
+            }
+            // Add items to right block
+            if (rightSpace > 80) {
+                newDecors.push({ x: gapX + gapWidth + (rightSpace / 2), y: y, type: Math.random() > 0.5 ? 'CHANDELIER' : 'BANNER' });
+            }
+            return newDecors;
+        }
+
         function init() {
             if (loopId) cancelAnimationFrame(loopId);
-            gameActive = true; score = 0; floorsPassed = 0; deathTimer = 0; 
+            gameActive = true; score = 0; deathTimer = 0; 
             scrollSpeed = START_SPEED; bgScroll = 0;
             player = { x: width/2, targetX: width/2, y: -80, targetY: height/2.8, state: 'intro' };
-            platforms = []; particles = []; keys = {}; 
+            platforms = []; particles = []; decors = []; keys = {}; 
             scoreEl.innerText = "0";
 
             for(let i=0; i<8; i++) {
                 let y = height + i * platformGap;
-                platforms.push({ y, gapX: Math.random()*(width-180)+20, gapWidth: 155, scored: false });
+                let gapX = Math.random()*(width-180)+20;
+                let gapWidth = 155;
+                platforms.push({ y, gapX, gapWidth, scored: false });
+                decors.push(...createDecor(y, gapX, gapWidth));
             }
             deathScreen.style.display = 'none';
             update();
         }
 
         function createParticles(x, y) {
-            for(let i=0; i<40; i++) particles.push({ x: x, y: y, vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15, life: 1 });
+            for(let i=0; i<50; i++) particles.push({ x: x, y: y, vx: (Math.random()-0.5)*18, vy: (Math.random()-0.5)*18, life: 1 });
+        }
+
+        function drawBackground() {
+            ctx.fillStyle = "#0a0a0c"; 
+            ctx.fillRect(0, 0, width, height);
+            
+            ctx.lineWidth = 2;
+            let brickH = 60;
+            let brickW = 100;
+            let startY = (bgScroll % brickH) - brickH;
+
+            for (let y = startY; y < height; y += brickH) {
+                let offset = (Math.round(y / brickH) % 2 === 0) ? 0 : brickW / 2;
+                for (let x = -brickW; x < width; x += brickW) {
+                    // Give some bricks a slightly darker stone color
+                    ctx.fillStyle = (Math.abs(x*y) % 5 === 0) ? "#111114" : "#16161a";
+                    ctx.fillRect(x + offset, y, brickW, brickH);
+                    
+                    // Shadow/highlight for 3D effect
+                    ctx.strokeStyle = "#000";
+                    ctx.strokeRect(x + offset, y, brickW, brickH);
+                    ctx.strokeStyle = "rgba(255,255,255,0.03)";
+                    ctx.strokeRect(x + offset + 2, y + 2, brickW - 4, brickH - 4);
+                }
+            }
+        }
+
+        function drawDecor(d) {
+            ctx.save();
+            ctx.translate(d.x, d.y);
+            
+            if (d.type === 'CHANDELIER') {
+                ctx.strokeStyle = "#222"; ctx.lineWidth = 4;
+                // Main chain
+                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 50); ctx.stroke();
+                // Base
+                ctx.fillStyle = "#111";
+                ctx.beginPath(); ctx.arc(0, 50, 30, 0, Math.PI); ctx.fill(); ctx.stroke();
+                // Candles
+                for(let i=-1; i<=1; i+=1) {
+                    let cx = i * 20;
+                    ctx.fillStyle = "#ddd"; ctx.fillRect(cx - 3, 35, 6, 15);
+                    // Flickering flame
+                    let flicker = Math.sin(globalTime + cx) * 3;
+                    ctx.fillStyle = "rgba(255, 100, 0, 0.8)";
+                    ctx.shadowBlur = 10 + flicker; ctx.shadowColor = "#ff4400";
+                    ctx.beginPath(); ctx.arc(cx, 30 + flicker/2, 5, 0, Math.PI * 2); ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            } else if (d.type === 'BANNER') {
+                ctx.fillStyle = "#4a0000"; // Dark red
+                ctx.fillRect(-20, 0, 40, 80);
+                // Cutout at bottom for tattered look
+                ctx.fillStyle = "transparent";
+                ctx.globalCompositeOperation = "destination-out";
+                ctx.beginPath(); ctx.moveTo(-20, 80); ctx.lineTo(0, 60); ctx.lineTo(20, 80); ctx.fill();
+                ctx.globalCompositeOperation = "source-over";
+                
+                // Banner pole
+                ctx.fillStyle = "#111"; ctx.fillRect(-30, 0, 60, 5);
+            }
+            ctx.restore();
+        }
+
+        function drawPlatforms() {
+            platforms.forEach(p => {
+                // Draw Base Blocks (Dark Iron)
+                ctx.fillStyle = "#151515";
+                ctx.fillRect(0, p.y, p.gapX, 25);
+                ctx.fillRect(p.gapX + p.gapWidth, p.y, width, 25);
+                
+                // Iron trim
+                ctx.fillStyle = "#222";
+                ctx.fillRect(0, p.y, p.gapX, 4);
+                ctx.fillRect(p.gapX + p.gapWidth, p.y, width, 4);
+
+                // GLOWING NEON SPIKES
+                ctx.save();
+                ctx.shadowBlur = 15; 
+                ctx.shadowColor = "#ff0044";
+                ctx.fillStyle = "#ff0044";
+                
+                let spikeW = 16;
+                let spikeH = 25;
+                
+                // Left Spikes
+                for(let i = 0; i < p.gapX - spikeW; i += spikeW) {
+                    ctx.beginPath(); ctx.moveTo(i, p.y); ctx.lineTo(i + spikeW/2, p.y - spikeH); ctx.lineTo(i + spikeW, p.y); ctx.fill();
+                }
+                // Right Spikes
+                for(let i = p.gapX + p.gapWidth; i < width - spikeW; i += spikeW) {
+                    ctx.beginPath(); ctx.moveTo(i, p.y); ctx.lineTo(i + spikeW/2, p.y - spikeH); ctx.lineTo(i + spikeW, p.y); ctx.fill();
+                }
+                ctx.restore();
+            });
         }
 
         function update() {
+            globalTime += 0.1;
             if (!gameActive) {
                 deathTimer++;
                 if (deathTimer === 60) {
@@ -109,15 +215,19 @@
             }
             if (gameActive) {
                 player.x += (player.targetX - player.x) * 0.18;
-                player.x = Math.max(25, Math.min(width - 25, player.x));
+                player.x = Math.max(20, Math.min(width - 20, player.x));
                 
-                bgScroll += scrollSpeed * 0.5;
+                bgScroll += scrollSpeed * 0.3; // Parallax background
+                
                 platforms.forEach(p => p.y -= scrollSpeed);
+                decors.forEach(d => d.y -= scrollSpeed);
 
                 platforms.forEach(p => {
                     if (player.y + 20 > p.y && player.y < p.y + 10) {
                         if (player.x > p.gapX && player.x < p.gapX + p.gapWidth) {
-                            if (!p.scored) { p.scored = true; score += 10; floorsPassed++; scrollSpeed += 0.04; }
+                            if (!p.scored) { 
+                                p.scored = true; score += 10; scrollSpeed += 0.04; 
+                            }
                         } else {
                             gameActive = false; player.state = 'dead'; createParticles(player.x, p.y);
                         }
@@ -126,8 +236,14 @@
 
                 if (platforms[0].y < -300) {
                     platforms.shift();
-                    platforms.push({ y: platforms[platforms.length-1].y + platformGap, gapX: Math.random()*(width-180)+20, gapWidth: 155, scored: false });
+                    let y = platforms[platforms.length-1].y + platformGap;
+                    let gapX = Math.random()*(width-180)+20;
+                    let gapWidth = 155;
+                    platforms.push({ y, gapX, gapWidth, scored: false });
+                    decors.push(...createDecor(y, gapX, gapWidth));
                 }
+                // Clean up old decor
+                decors = decors.filter(d => d.y > -100);
             }
             draw();
             loopId = requestAnimationFrame(update);
@@ -136,57 +252,38 @@
         function draw() {
             ctx.clearRect(0, 0, width, height);
 
-            if (images.bg.complete && images.bg.naturalWidth !== 0) {
-                let bgH = (width / images.bg.width) * images.bg.height; 
-                let yOffset = bgScroll % bgH;
-                ctx.drawImage(images.bg, 0, -yOffset, width, bgH);
-                ctx.drawImage(images.bg, 0, bgH - yOffset, width, bgH);
-            } else {
-                ctx.fillStyle = "#1a1a1a"; ctx.fillRect(0,0,width,height);
-            }
+            drawBackground();
+            decors.forEach(d => drawDecor(d));
+            drawPlatforms();
 
-            platforms.forEach(p => {
-                let platformHeight = 120; let spikeHeight = 40;     
-
-                ctx.save(); ctx.beginPath(); ctx.rect(0, p.y, p.gapX, platformHeight); ctx.clip(); 
-                if (images.base.complete && images.base.naturalWidth !== 0) ctx.drawImage(images.base, 0, p.y, width, platformHeight);
-                else { ctx.fillStyle = "#000"; ctx.fillRect(0, p.y, width, platformHeight); }
-                ctx.restore();
-
-                ctx.save(); ctx.beginPath(); ctx.rect(0, p.y - spikeHeight, p.gapX, spikeHeight); ctx.clip();
-                if (images.spike.complete && images.spike.naturalWidth !== 0) ctx.drawImage(images.spike, 0, p.y - spikeHeight, width, spikeHeight);
-                else { ctx.fillStyle = "#ff0044"; ctx.fillRect(0, p.y - spikeHeight, width, spikeHeight); }
-                ctx.restore();
-
-                ctx.save(); ctx.beginPath(); ctx.rect(p.gapX + p.gapWidth, p.y, width, platformHeight); ctx.clip(); 
-                if (images.base.complete && images.base.naturalWidth !== 0) ctx.drawImage(images.base, 0, p.y, width, platformHeight);
-                ctx.restore();
-
-                ctx.save(); ctx.beginPath(); ctx.rect(p.gapX + p.gapWidth, p.y - spikeHeight, width, spikeHeight); ctx.clip();
-                if (images.spike.complete && images.spike.naturalWidth !== 0) ctx.drawImage(images.spike, 0, p.y - spikeHeight, width, spikeHeight);
-                ctx.restore();
-            });
-
-            ctx.save(); ctx.translate(player.x, player.y);
+            // 3. DRAW GLOWING PLAYER
+            ctx.save(); 
+            ctx.translate(player.x, player.y);
             if (!gameActive) ctx.rotate(Math.PI / 1.7);
             
-            if (images.player.complete && images.player.naturalWidth !== 0) {
-                ctx.drawImage(images.player, -25, -25, 50, 50);
-            } else {
-                ctx.strokeStyle = gameActive ? "#fff" : "#f00"; ctx.lineWidth = 5;
-                ctx.beginPath(); ctx.arc(0, -15, 8, 0, 7); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(0, -7); ctx.lineTo(0, 15); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(-15, 5); ctx.lineTo(15, 5); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(0, 15); ctx.lineTo(-10, 30); ctx.moveTo(0, 15); ctx.lineTo(10, 30); ctx.stroke();
-            }
+            ctx.shadowBlur = 15; 
+            ctx.shadowColor = gameActive ? "#fff" : "#ff0044";
+            ctx.strokeStyle = gameActive ? "#fff" : "#ff0044"; 
+            ctx.lineWidth = 4;
+            ctx.lineCap = "round";
+            
+            ctx.beginPath(); ctx.arc(0, -15, 7, 0, 7); ctx.stroke(); // Head
+            ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(0, 12); ctx.stroke(); // Body
+            
+            let flail = gameActive ? Math.sin(globalTime * 2) * 5 : 5;
+            ctx.beginPath(); ctx.moveTo(-12, 0 + flail); ctx.lineTo(12, 0 - flail); ctx.stroke(); // Arms
+            ctx.beginPath(); ctx.moveTo(0, 12); ctx.lineTo(-10, 25); ctx.moveTo(0, 12); ctx.lineTo(10, 25); ctx.stroke(); // Legs
+            
             ctx.restore();
 
+            // 4. DEATH PARTICLES
             particles.forEach((p, i) => {
                 ctx.fillStyle = `rgba(255, 0, 68, ${p.life})`;
-                ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, 7); ctx.fill();
-                p.x += p.vx; p.y += p.vy; p.vy += 0.4; p.life -= 0.03;
+                ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, 7); ctx.fill();
+                p.x += p.vx; p.y += p.vy; p.vy += 0.5; p.life -= 0.03;
                 if (p.life <= 0) particles.splice(i, 1);
             });
+            
             scoreEl.innerText = score;
         }
 
