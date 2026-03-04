@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE FALL: SMASH TRANSITION</title>
+    <title>THE FALL: CLEAN PHYSICS</title>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Space+Grotesk:wght@900&display=swap" rel="stylesheet">
     <style>
         :root { --danger: #ff0022; --accent: #ffffff; }
@@ -13,7 +13,6 @@
         #ui { position: absolute; top: 0; left: 0; width: 100%; padding: 20px; box-sizing: border-box; display: flex; justify-content: space-between; pointer-events: none; z-index: 100; font-family: 'Bangers', cursive; }
         .stat { color: #fff; font-size: 2.2rem; text-shadow: 4px 4px 0 #000; letter-spacing: 2px; }
         
-        /* SHRUNKEN, MORE TRANSPARENT END SCREEN */
         #death-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.80); border: 4px solid var(--danger); padding: 15px 25px; display: none; flex-direction: column; align-items: center; z-index: 200; width: 65%; max-height: 85vh; overflow-y: auto; border-radius: 12px; box-shadow: 0 0 30px rgba(255,0,34,0.5); backdrop-filter: blur(2px); }
         .btn-retry { background: #4ade80; color: #000; width: 100%; font-size: 2rem; padding: 10px; margin-top: 10px; border: 4px solid #000; cursor: pointer; font-family: 'Bangers'; text-transform: uppercase; box-shadow: 4px 4px 0 #fff; }
         
@@ -61,6 +60,7 @@
         const lvlEl = document.getElementById('lvl-ui');
         const deathScreen = document.getElementById('death-screen');
         const nameInputDiv = document.getElementById('name-input-div');
+        const nameInputBlock = document.getElementById('name-input');
         const lbList = document.getElementById('lb-list');
 
         let width, height, player, platforms, particles, decors, score, floorsPassed, gameActive, keys, deathTimer, loopId;
@@ -72,7 +72,7 @@
         let globalTime = 0;
         let shakeFrames = 0;
         let introTimer = 0; 
-        let platformsGenerated = 0; // Tracks when to spawn wood
+        let platformsGenerated = 0; 
 
         const ARCHITECTURES = ["CATHEDRAL", "CYBER-LAB", "BIO-SEWER"];
         const ACCESSORIES = ["NONE", "HAT", "DRESS", "GOGGLES", "CROWN"];
@@ -99,13 +99,14 @@
         function checkHighScore() {
             if (leaderboard.length < 10 || score > (leaderboard[leaderboard.length - 1]?.score || 0)) {
                 nameInputDiv.style.display = 'flex';
+                nameInputBlock.focus();
             } else { nameInputDiv.style.display = 'none'; }
             updateLeaderboardUI();
             document.getElementById('final-score').innerText = "PTS: " + score;
             deathScreen.style.display = 'flex';
         }
         function saveScore() {
-            let name = document.getElementById('name-input').value || 'ANON';
+            let name = nameInputBlock.value || 'ANON';
             leaderboard.push({ name: name, score: score });
             leaderboard.sort((a, b) => b.score - a.score);
             leaderboard = leaderboard.slice(0, 10);
@@ -138,11 +139,22 @@
         function resize() { width = canvas.width = Math.min(window.innerWidth, 500); height = canvas.height = window.innerHeight; buildBackground(); }
         window.addEventListener('resize', resize); resize();
 
-        // FIXED SPACEBAR RESTART
+        // ----------------------------------------------------
+        // FIXED SPACEBAR RESTART LOGIC
+        // ----------------------------------------------------
         window.addEventListener('keydown', e => { 
-            if (e.code === 'Space') e.preventDefault(); // Stops page scrolling
+            if (e.code === 'Space' || e.key === ' ') {
+                // If they are NOT typing their name, don't let the page scroll
+                if (document.activeElement !== nameInputBlock) {
+                    e.preventDefault(); 
+                }
+                // If game is over, death screen is up, and they aren't typing their name, restart!
+                if (!gameActive && deathTimer > 30 && document.activeElement !== nameInputBlock) {
+                    init();
+                    return;
+                }
+            }
             keys[e.code] = true; 
-            if(e.code === 'Space' && !gameActive && deathTimer > 30 && nameInputDiv.style.display === 'none') init(); 
         });
         window.addEventListener('keyup', e => { keys[e.code] = false; });
         
@@ -167,6 +179,7 @@
             platforms = []; particles = []; decors = []; keys = {}; 
             scoreEl.innerText = "0"; lvlEl.innerText = theme.arch; lvlEl.style.color = theme.mainColor;
             deathScreen.style.display = 'none';
+            nameInputBlock.value = ""; // Clear old name
 
             for(let i=0; i<8; i++) {
                 platformsGenerated++;
@@ -181,24 +194,24 @@
 
         function triggerGore(x, y) {
             shakeFrames = 15; 
-            for(let i=0; i<80; i++) {
-                let angle = Math.random() * Math.PI * 2; let speed = Math.random() * 20; 
+            for(let i=0; i<70; i++) {
+                let angle = Math.random() * Math.PI * 2; 
+                let speed = Math.random() * 15 + 5; 
                 particles.push({ 
-                    x: x, y: y, vx: Math.cos(angle) * speed, vy: (Math.sin(angle) * speed) - 10, 
-                    life: 2.0 + Math.random(), size: Math.random() * 6 + 3, splatted: false, dripSpeed: 0, dripLength: 0,
+                    x: x, y: y, vx: Math.cos(angle) * speed, vy: (Math.sin(angle) * speed) - 5, 
+                    life: 2.0 + Math.random(), size: Math.random() * 5 + 2, splatted: false,
                     color: Math.random() > 0.5 ? '#ff0000' : '#aa0000', isWood: false
                 });
             }
         }
 
-        // WOOD SMASH EXPLOSION
         function triggerWoodSmash(x, y) {
-            shakeFrames = 25; // Massive smash shake
-            for(let i=0; i<50; i++) {
+            shakeFrames = 25; 
+            for(let i=0; i<40; i++) {
                 particles.push({ 
                     x: x + (Math.random() * 40 - 20), y: y, 
-                    vx: (Math.random() - 0.5) * 15, vy: (Math.random() * -15) - 5, // Blast up and out
-                    life: 1.5 + Math.random(), size: Math.random() * 8 + 3, splatted: false, dripSpeed: 0, dripLength: 0,
+                    vx: (Math.random() - 0.5) * 15, vy: (Math.random() * -15) - 5, 
+                    life: 1.5 + Math.random(), size: Math.random() * 8 + 3, splatted: false,
                     color: Math.random() > 0.5 ? '#654321' : '#8B4513', isWood: true
                 });
             }
@@ -230,7 +243,7 @@
             } else { 
                 if (d.type === 'A') { 
                     ctx.fillStyle="#222"; ctx.fillRect(-15,0,30,40);
-                    if(Math.random()>0.9) particles.push({x: d.x, y: d.y+40, vx:0, vy:5, life:0.5, size:4, splatted:false, color:theme.mainColor, dripSpeed: 0, dripLength: 0, isWood: false});
+                    if(Math.random()>0.9) particles.push({x: d.x, y: d.y+40, vx:0, vy:5, life:0.5, size:4, splatted:false, color:theme.mainColor, isWood: false});
                 } else { 
                     ctx.strokeStyle=theme.mainColor; ctx.lineWidth=8; ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(20, 50, 0, 100); ctx.stroke();
                 }
@@ -250,17 +263,15 @@
                 for(let i = p.gapX + p.gapWidth; i < width - spikeW; i += spikeW) { ctx.moveTo(i, p.y); ctx.lineTo(i + spikeW/2, p.y - spikeH); ctx.lineTo(i + spikeW, p.y); }
                 ctx.fill();
 
-                // THE WOOD BLOCKAGE
                 if (p.isWood) {
                     if (!p.smashed) {
-                        ctx.fillStyle = "#4a2d16"; // Dark wood
+                        ctx.fillStyle = "#4a2d16"; 
                         ctx.fillRect(p.gapX, p.y, p.gapWidth, 35);
-                        ctx.fillStyle = "#2a1608"; // Wood lines
+                        ctx.fillStyle = "#2a1608"; 
                         ctx.fillRect(p.gapX, p.y + 8, p.gapWidth, 3);
                         ctx.fillRect(p.gapX, p.y + 18, p.gapWidth, 3);
                         ctx.fillRect(p.gapX, p.y + 28, p.gapWidth, 3);
                     } else {
-                        // Smashed jagged edges
                         ctx.fillStyle = "#4a2d16";
                         ctx.beginPath(); ctx.moveTo(p.gapX, p.y); ctx.lineTo(p.gapX+15, p.y+15); ctx.lineTo(p.gapX, p.y+35); ctx.fill();
                         ctx.beginPath(); ctx.moveTo(p.gapX+p.gapWidth, p.y); ctx.lineTo(p.gapX+p.gapWidth-15, p.y+15); ctx.lineTo(p.gapX+p.gapWidth, p.y+35); ctx.fill();
@@ -307,15 +318,11 @@
                         if (player.x > p.gapX && player.x < p.gapX + p.gapWidth) {
                             if (!p.scored) { 
                                 p.scored = true; 
-                                
-                                // SMASH LOGIC
                                 if (p.isWood && !p.smashed) {
                                     p.smashed = true;
                                     triggerWoodSmash(player.x, p.y);
                                 }
-
                                 score += 10; floorsPassed++; scrollSpeed += 0.04; 
-                                
                                 if (floorsPassed % 10 === 0) {
                                     currentLevel++; theme = getTheme(); lvlEl.innerText = theme.arch; lvlEl.style.color = theme.mainColor; buildBackground();
                                 }
@@ -338,16 +345,21 @@
                 decors = decors.filter(d => d.y > -150);
             }
 
+            // CLEAN BLOOD PHYSICS
             particles.forEach(p => {
                 if (p.splatted && !p.isWood) {
-                    p.y -= scrollSpeed; p.dripSpeed += 0.2; p.dripLength += p.dripSpeed; 
+                    p.y -= scrollSpeed; // Sticks cleanly to the floor moving up
                 } else {
-                    p.x += p.vx; p.y += p.vy; p.vy += 1.5; 
+                    p.x += p.vx; p.y += p.vy; p.vy += 1.2; 
                     
-                    // Blood splats, wood splinters just fall
-                    if (!p.isWood) {
+                    if (!p.isWood && p.vy > 0) { // Only splat when falling down
                         let hitFloor = platforms.find(plat => p.y >= plat.y && p.y <= plat.y + 15 && (p.x < plat.gapX || p.x > plat.gapX + plat.gapWidth));
-                        if (hitFloor) { p.splatted = true; p.y = hitFloor.y; p.dripSpeed = 0; p.dripLength = 0; }
+                        if (hitFloor) { 
+                            p.splatted = true; 
+                            p.y = hitFloor.y; 
+                            p.vx = 0; p.vy = 0; 
+                            p.size *= 1.5; // Flatten out slightly when hitting the floor
+                        }
                     }
                 }
                 p.life -= 0.005; 
@@ -369,17 +381,18 @@
             decors.forEach(d => drawDecor(d)); 
             drawPlatforms();
 
-            // PARTICLES (BLOOD + WOOD)
+            // CLEAN PARTICLES
             particles.forEach(p => {
                 ctx.fillStyle = p.color;
                 if (p.splatted && !p.isWood) {
-                    ctx.fillRect(p.x - p.size/2, p.y, p.size, p.size);
-                    ctx.fillRect(p.x - p.size/4, p.y, p.size/2, p.dripLength);
+                    // Draw clean static oval splat
+                    ctx.beginPath(); ctx.ellipse(p.x, p.y, p.size * 1.5, p.size * 0.5, 0, 0, Math.PI*2); ctx.fill();
                 } else {
-                    let stretch = p.isWood ? 1.5 : Math.max(1, Math.abs(p.vy) * 0.2); // Wood stretches differently
+                    let stretch = p.isWood ? 1.5 : Math.max(1, Math.abs(p.vy) * 0.15); 
                     ctx.save(); ctx.translate(p.x, p.y); 
-                    if (p.isWood) ctx.rotate(globalTime * 10); // Splinters spin
-                    ctx.fillRect(0 - p.size/2, 0 - (p.size*stretch)/2, p.size, p.size * stretch);
+                    if (p.isWood) ctx.rotate(globalTime * 10); 
+                    else ctx.rotate(Math.atan2(p.vy, p.vx));
+                    ctx.beginPath(); ctx.ellipse(0, 0, p.size * stretch, p.size, 0, 0, Math.PI*2); ctx.fill();
                     ctx.restore();
                 }
             });
