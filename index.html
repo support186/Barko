@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE FALL: PRECISION EDITION</title>
+    <title>THE FALL: EVOLUTION</title>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Space+Grotesk:wght@900&display=swap" rel="stylesheet">
     <style>
         :root { --danger: #ff0022; --accent: #ffffff; }
@@ -13,13 +13,17 @@
         #ui { position: absolute; top: 0; left: 0; width: 100%; padding: 15px; box-sizing: border-box; display: flex; justify-content: space-between; pointer-events: none; z-index: 100; font-family: 'Bangers', cursive; }
         .pts { color: #fff; font-size: 2.2rem; text-shadow: 3px 3px 0 #000; }
         #top-3-hud { color: rgba(255,255,255,0.7); font-size: 1rem; text-align: right; text-shadow: 2px 2px 0 #000; line-height: 1.2; }
+        
         #death-screen { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 4px solid var(--danger); padding: 20px; display: none; flex-direction: column; align-items: center; z-index: 200; width: 80%; border-radius: 12px; box-shadow: 0 0 50px rgba(255,0,34,0.6); backdrop-filter: blur(8px); }
         .btn-retry { background: #4ade80; color: #000; width: 100%; font-size: 2rem; padding: 12px; margin-top: 10px; border: 4px solid #000; cursor: pointer; font-family: 'Bangers'; text-transform: uppercase; box-shadow: 4px 4px 0 #fff; }
-        #gallery { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 15px 0; width: 100%; }
-        .gallery-item { aspect-ratio: 1; border: 2px solid #333; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: #444; background: #111; border-radius: 4px; }
+        
+        #gallery { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 10px 0; width: 100%; }
+        .gallery-item { aspect-ratio: 1; border: 2px solid #333; display: flex; align-items: center; justify-content: center; font-size: 0.55rem; color: #444; background: #111; border-radius: 4px; }
         .gallery-item.unlocked { color: #fff; border-color: #4ade80; }
+
         #name-input-div { display: none; width: 100%; flex-direction: column; align-items: center; margin-bottom: 10px; }
         #name-input { width: 90%; padding: 10px; font-size: 1.4rem; font-family: 'Bangers'; text-align: center; border: 3px solid #fff; background: #000; color: #fff; text-transform: uppercase; }
+        #final-score-display { color: #4ade80; font-size: 2.2rem; font-family: 'Bangers'; margin: 5px 0; text-shadow: 2px 2px 0 #000; }
     </style>
 </head>
 <body>
@@ -34,13 +38,17 @@
         <canvas id="gameCanvas"></canvas>
         <div id="death-screen">
             <h2 style="color:#fff; font-size: 3rem; margin:0;">WASTED</h2>
+            
+            <div id="final-score-display">000</div>
+
             <div id="name-input-div">
-                <input type="text" id="name-input" maxlength="10" placeholder="ENTER NAME">
-                <button class="btn-retry" style="background:var(--danger); color:#fff; font-size:1.4rem;" onclick="saveScore()">SAVE</button>
+                <input type="text" id="name-input" maxlength="10" placeholder="NAME">
+                <button class="btn-retry" style="background:var(--danger); color:#fff; font-size:1.4rem;" onclick="saveScore()">SAVE RECORD</button>
             </div>
+            
             <div id="leaderboard" style="width:100%; color:#fff; font-size: 0.9rem; border-bottom: 1px solid #333; padding-bottom: 8px;"><div id="lb-list"></div></div>
-            <div style="font-family:'Bangers'; color:#4ade80; margin-top:10px; font-size:1.4rem;">SECTOR GALLERY</div>
             <div id="gallery"></div>
+
             <button class="btn-retry" onclick="init()">START AGAIN</button>
         </div>
     </div>
@@ -54,6 +62,7 @@
         const scoreEl = document.getElementById('score-val'), lvlEl = document.getElementById('lvl-ui');
         const deathScreen = document.getElementById('death-screen'), top3Hud = document.getElementById('top-3-hud');
         const lbList = document.getElementById('lb-list'), galleryEl = document.getElementById('gallery');
+        const finalScoreDisplay = document.getElementById('final-score-display');
         const nameInputDiv = document.getElementById('name-input-div'), nameInput = document.getElementById('name-input');
 
         let width, height, player, platforms, particles, decors, score, floorsPassed, gameActive, keys, deathTimer, loopId;
@@ -61,23 +70,30 @@
         let scrollSpeed = 0, bgScroll = 0, globalTime = 0, shakeFrames = 0, platformsGenerated = 0, currentLevel = 0;
 
         const STYLES = ["CATHEDRAL", "CYBER-LAB", "BIO-SEWER", "SOLAR-FLARE", "VOID-PURPLE", "ARCTIC", "SAND-RUIN", "DEEP-SEA", "MAGMA", "EMERALD"];
-        const ACCESSORIES = ["NONE", "HAT", "DRESS", "GOGGLES", "CROWN"];
+        const FORMS = ["NONE", "CROWN", "ANGEL", "DEVIL", "GOGGLES", "HAT"];
 
         let leaderboard = JSON.parse(localStorage.getItem('barko_lb')) || [];
         let unlockedStyles = JSON.parse(localStorage.getItem('barko_gallery')) || [0];
 
         function updateUI() {
-            top3Hud.innerHTML = "TOP SURVIVORS<br>" + leaderboard.slice(0, 3).map((e, i) => `${i+1}. ${e.name} - ${e.score}`).join('<br>');
+            top3Hud.innerHTML = "TOP 3<br>" + leaderboard.slice(0, 3).map((e, i) => `${i+1}. ${e.name}: ${e.score}`).join('<br>');
             lbList.innerHTML = leaderboard.slice(0, 5).map((e, i) => `<div style="display:flex; justify-content:space-between;"><span>${i+1}. ${e.name}</span><span>${e.score}</span></div>`).join('');
             galleryEl.innerHTML = STYLES.map((name, i) => {
                 const isUnlocked = unlockedStyles.includes(i);
-                return `<div class="gallery-item ${isUnlocked ? 'unlocked' : ''}" style="--theme-color: hsl(${i*36}, 100%, 50%)">${isUnlocked ? name.slice(0,3) : '???'}</div>`;
+                return `<div class="gallery-item ${isUnlocked ? 'unlocked' : ''}" style="--theme-color: hsl(${i*72}, 100%, 50%)">${isUnlocked ? name.slice(0,3) : '???'}</div>`;
             }).join('');
         }
 
         function getTheme() {
-            let h = (currentLevel * 36) % 360;
-            return { idx: currentLevel % 10, name: STYLES[currentLevel % 10], acc: ACCESSORIES[currentLevel % 5], main: `hsl(${h}, 100%, 50%)`, dark: `hsl(${h}, 80%, 10%)` };
+            // Stronger shift: 72 degrees per level ensures high contrast
+            let h = (currentLevel * 72) % 360; 
+            return { 
+                idx: currentLevel % 10, 
+                name: STYLES[currentLevel % 10], 
+                form: FORMS[currentLevel % FORMS.length], 
+                main: `hsl(${h}, 100%, 50%)`, 
+                dark: `hsl(${h}, 80%, 10%)` 
+            };
         }
         let theme = getTheme();
 
@@ -109,14 +125,8 @@
             keys[e.code] = true; 
         });
         window.addEventListener('keyup', e => keys[e.code] = false);
-
-        // CONTROL FIX: SMOOTHER MOUSE FOLLOW
-        canvas.addEventListener('mousemove', e => { 
-            if(gameActive && player.state === 'active') {
-                const rect = canvas.getBoundingClientRect();
-                player.targetX = (e.clientX - rect.left) * (width / rect.width);
-            }
-        });
+        canvas.addEventListener('mousemove', e => { if(gameActive && player.state === 'active') { const r = canvas.getBoundingClientRect(); player.targetX = (e.clientX - r.left) * (width / r.width); } });
+        canvas.addEventListener('touchmove', e => { e.preventDefault(); if(gameActive && player.state === 'active') { const r = canvas.getBoundingClientRect(); player.targetX = (e.touches[0].clientX - r.left) * (width / r.width); } }, {passive:false});
 
         function spawnPlatform(y) {
             platformsGenerated++;
@@ -159,6 +169,7 @@
             if(!gameActive) {
                 deathTimer++;
                 if(deathTimer === 60) {
+                    finalScoreDisplay.innerText = "PTS: " + score;
                     if(leaderboard.length < 10 || score > (leaderboard[leaderboard.length-1]?.score || 0)) nameInputDiv.style.display = 'flex';
                     updateUI(); deathScreen.style.display = 'flex';
                 }
@@ -168,17 +179,9 @@
                 if(Math.abs(player.y - player.targetY) < 1) { player.state = 'active'; scrollSpeed = (currentLevel < 3) ? START_SPEED * 0.95 : START_SPEED; }
             }
             if(gameActive && player.state === 'active') {
-                
-                // PRECISION KEYBOARD CONTROLS
-                const KEY_SPEED = 7; 
-                if(keys['ArrowLeft'] || keys['KeyA']) player.targetX -= KEY_SPEED;
-                if(keys['ArrowRight'] || keys['KeyD']) player.targetX += KEY_SPEED;
-                
+                const K_SPD = 7; if(keys['ArrowLeft'] || keys['KeyA']) player.targetX -= K_SPD; if(keys['ArrowRight'] || keys['KeyD']) player.targetX += K_SPD;
                 player.targetX = Math.max(15, Math.min(width - 15, player.targetX));
-                
-                // LERP: SMOOTH MOVEMENT MATH
                 player.x += (player.targetX - player.x) * 0.12; 
-                
                 bgScroll += scrollSpeed * 0.4;
                 platforms.forEach(p => {
                     p.y -= scrollSpeed;
@@ -216,46 +219,46 @@
         function draw() {
             let offset = bgScroll % 800; ctx.drawImage(bgCanvas, 0, -offset); ctx.drawImage(bgCanvas, 0, 800-offset);
             ctx.save(); if(shakeFrames > 0) ctx.translate(Math.random()*16-8, Math.random()*16-8);
-
             decors.forEach(d => {
                 ctx.save(); ctx.translate(d.x, d.y); ctx.fillStyle = theme.main; ctx.strokeStyle = theme.main; ctx.lineWidth = 3;
                 let t = theme.name;
-                if(t === "CATHEDRAL") {
-                    ctx.fillRect(-2,0,4,60); ctx.beginPath(); ctx.arc(0,65,15,0,7); ctx.fill();
-                } else if(t === "CYBER-LAB") {
-                    ctx.strokeRect(-20,10,40,40); ctx.fillRect(-15,15,30,Math.abs(Math.sin(globalTime+d.seed))*30);
-                } else if(t === "BIO-SEWER") {
-                    ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(40,40,0,120); ctx.stroke();
-                } else { ctx.fillRect(-8,0,16,16); ctx.fillRect(-2,0,4,120); }
+                if(t === "CATHEDRAL") { ctx.fillRect(-2,0,4,60); ctx.beginPath(); ctx.arc(0,65,15,0,7); ctx.fill(); }
+                else if(t === "CYBER-LAB") { ctx.strokeRect(-20,10,40,40); ctx.fillRect(-15,15,30,Math.abs(Math.sin(globalTime+d.seed))*30); }
+                else if(t === "BIO-SEWER") { ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(40,40,0,120); ctx.stroke(); }
+                else { ctx.fillRect(-8,0,16,16); ctx.fillRect(-2,0,4,120); }
                 ctx.restore();
             });
-
             platforms.forEach(p => {
                 ctx.fillStyle = "#111"; ctx.fillRect(0, p.y, p.gapX, 40); ctx.fillRect(p.gapX+p.gapWidth, p.y, width, 40);
-                ctx.fillStyle = theme.main; let sW = 16, sH = 32;
-                ctx.beginPath();
+                ctx.fillStyle = theme.main; let sW = 16, sH = 32; ctx.beginPath();
                 for(let i=0; i<p.gapX-sW; i+=sW) { ctx.moveTo(i,p.y); ctx.lineTo(i+sW/2,p.y-sH); ctx.lineTo(i+sW,p.y); }
                 for(let i=p.gapX+p.gapWidth; i<width-sW; i+=sW) { ctx.moveTo(i,p.y); ctx.lineTo(i+sW/2,p.y-sH); ctx.lineTo(i+sW,p.y); }
                 ctx.fill();
                 if(p.isWood && !p.smashed) { ctx.fillStyle="#532"; ctx.fillRect(p.gapX, p.y, p.gapWidth, 40); }
             });
-
             particles.forEach(p => {
                 ctx.fillStyle = p.color;
-                if(p.isWood) { ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(globalTime*10); ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size); ctx.restore(); }
-                else ctx.fillRect(p.x-p.size/2, p.y, p.size, p.size + p.drip);
+                if(p.splatted && !p.isWood) { ctx.beginPath(); ctx.ellipse(p.x, p.y, p.size * 1.5, p.size * 0.5, 0, 0, Math.PI*2); ctx.fill(); }
+                else { 
+                    let s = p.isWood ? 1 : Math.max(1, Math.abs(p.vy) * 0.15); 
+                    ctx.save(); ctx.translate(p.x, p.y); if(p.isWood) ctx.rotate(globalTime*10); else ctx.rotate(Math.atan2(p.vy, p.vx));
+                    ctx.beginPath(); ctx.ellipse(0, 0, p.size * s, p.size, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
+                }
             });
-
             if(gameActive || deathTimer < 60) {
                 ctx.save(); ctx.translate(player.x, !gameActive ? player.pinnedY - 20 : player.y);
                 ctx.strokeStyle = "#fff"; ctx.lineWidth = 5; ctx.lineCap = "round";
                 let fl = gameActive ? Math.sin(globalTime*5)*10 : 0;
-                ctx.beginPath(); ctx.arc(0,-20,9,0,7); ctx.moveTo(0,-11); ctx.lineTo(0,15); 
-                ctx.moveTo(-20,fl); ctx.lineTo(20,-fl); ctx.moveTo(0,15); ctx.lineTo(-14,32); ctx.moveTo(0,15); ctx.lineTo(14,32); ctx.stroke();
-                ctx.fillStyle = theme.main; if(theme.acc === "HAT") ctx.fillRect(-12,-32,24,6); if(theme.acc === "CROWN") { ctx.beginPath(); ctx.moveTo(-12,-26); ctx.lineTo(0,-40); ctx.lineTo(12,-26); ctx.fill(); }
+                ctx.beginPath(); ctx.arc(0,-20,9,0,7); ctx.moveTo(0,-11); ctx.lineTo(0,15); ctx.moveTo(-20,fl); ctx.lineTo(20,-fl); ctx.moveTo(0,15); ctx.lineTo(-14,32); ctx.moveTo(0,15); ctx.lineTo(14,32); ctx.stroke();
+                ctx.fillStyle = "#fff";
+                if(theme.form === "CROWN") { ctx.fillStyle="#ffd700"; ctx.beginPath(); ctx.moveTo(-10,-24); ctx.lineTo(0,-38); ctx.lineTo(10,-24); ctx.fill(); }
+                if(theme.form === "HAT") { ctx.fillStyle="#222"; ctx.fillRect(-12,-28,24,6); ctx.fillRect(-8,-40,16,12); }
+                if(theme.form === "ANGEL") { ctx.globalAlpha=0.5; ctx.fillStyle="#8af"; ctx.beginPath(); ctx.ellipse(-20,-10,15,30,Math.PI/4,0,7); ctx.ellipse(20,-10,15,30,-Math.PI/4,0,7); ctx.fill(); ctx.globalAlpha=1; }
+                if(theme.form === "DEVIL") { ctx.fillStyle="#f00"; ctx.beginPath(); ctx.moveTo(-8,-26); ctx.lineTo(-12,-35); ctx.lineTo(-4,-26); ctx.moveTo(8,-26); ctx.lineTo(12,-35); ctx.lineTo(4,-26); ctx.fill(); }
+                if(theme.form === "GOGGLES") { ctx.fillStyle="#0ff"; ctx.fillRect(-8,-25,16,5); }
                 ctx.restore();
             }
-            ctx.setTransform(1,0,0,1,0,0);
+            ctx.setTransform(1,0,0,1,0,0); scoreEl.innerText = score;
         }
         init();
     </script>
