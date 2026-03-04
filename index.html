@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE FALL: CATHEDRAL</title>
+    <title>THE FALL: RAW SPRITE BUILD</title>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Space+Grotesk:wght@900&display=swap" rel="stylesheet">
     <style>
         :root { --danger: #ff0044; --accent: #ffffff; }
@@ -44,16 +44,15 @@
         let platformGap = START_GAP;
         let bgScroll = 0;
 
-        // --- IMAGE ASSET LOADER WITH CACHE BUSTER ---
+        // --- BYPASS BROWSER SECURITY WITH RAW GITHUB URLS ---
+        const RAW_URL = "https://raw.githubusercontent.com/support186/Barko/main/";
         const images = { bg: new Image(), spike: new Image(), base: new Image(), player: new Image() };
         
-        // This random number forces the browser to download the image fresh every time
-        const nocache = "?v=" + new Date().getTime();
-        
-        images.bg.src = "bg_cathedral.png" + nocache; 
-        images.spike.src = "spike_glow.png" + nocache;
-        images.base.src = "platform_base.png" + nocache;
-        images.player.src = "player_idle.png" + nocache;
+        // This forces the browser to download the exact raw files, ignoring MIME type mismatch
+        images.bg.src = RAW_URL + "bg_cathedral.png"; 
+        images.spike.src = RAW_URL + "spike_glow.png";
+        images.base.src = RAW_URL + "platform_base.png";
+        images.player.src = RAW_URL + "player_idle.png";
 
         function resize() {
             width = canvas.width = Math.min(window.innerWidth, 500);
