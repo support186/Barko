@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE FALL: HIGH-OCTANE FINAL</title>
+    <title>THE FALL: GLOBAL EDITION</title>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Space+Grotesk:wght@900&display=swap" rel="stylesheet">
     <style>
         :root { --danger: #ff0022; --accent: #ffffff; }
@@ -27,7 +27,7 @@
                 <div class="pts">PTS: <span id="score-val">0</span></div>
                 <div id="lvl-ui" style="font-size: 1.4rem;">CATHEDRAL</div>
             </div>
-            <div id="top-3-hud"></div>
+            <div id="top-3-hud">LOADING...</div>
         </div>
         <canvas id="gameCanvas"></canvas>
         <div id="death-screen">
@@ -35,14 +35,31 @@
             <div id="final-score-display">000</div>
             <div id="name-input-div">
                 <input type="text" id="name-input" maxlength="10" placeholder="NAME">
-                <button class="btn-retry" style="background:var(--danger); color:#fff; font-size:1.4rem;" onclick="saveScore()">SAVE RECORD</button>
+                <button class="btn-retry" style="background:var(--danger); color:#fff; font-size:1.4rem;" onclick="saveScore()">SAVE TO CLOUD</button>
             </div>
             <div id="leaderboard" style="width:100%; color:#fff; font-size: 0.9rem; border-bottom: 1px solid #333; padding-bottom: 8px;"><div id="lb-list"></div></div>
             <button class="btn-retry" onclick="init()">START AGAIN</button>
         </div>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
     <script>
+        // FIREBASE INITIALIZATION
+        const firebaseConfig = {
+            apiKey: "AIzaSyCL2wolEPhTljbUDuZNjm4NTdXtvP_Futk",
+            authDomain: "barko-8c794.firebaseapp.com",
+            databaseURL: "https://barko-8c794-default-rtdb.firebaseio.com",
+            projectId: "barko-8c794",
+            storageBucket: "barko-8c794.firebasestorage.app",
+            messagingSenderId: "448112363809",
+            appId: "1:448112363809:web:4b8f7cf928e6f83490d660"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d', { alpha: false });
         const bgCanvas = document.createElement('canvas');
@@ -56,26 +73,40 @@
         let width, height, player, platforms, particles, decors, score, floorsPassed, gameActive, keys, deathTimer, loopId;
         const START_SPEED = 5.83; 
         let scrollSpeed = 0, bgScroll = 0, globalTime = 0, shakeFrames = 0, introTimer = 0, platformsGenerated = 0, currentLevel = 0;
+        let leaderboard = [];
 
         const STYLES = ["CATHEDRAL", "CYBER-LAB", "BIO-SEWER", "SOLAR-FLARE", "VOID-PURPLE", "ARCTIC", "SAND-RUIN", "DEEP-SEA", "MAGMA", "EMERALD"];
         const FORMS = ["NONE", "CROWN", "HAT", "ANGEL", "DEVIL", "GOGGLES"];
 
-        let leaderboard = JSON.parse(localStorage.getItem('barko_lb')) || [];
-
+        // UI UPDATE
         function updateUI() {
-            top3Hud.innerHTML = "TOP 3<br>" + leaderboard.slice(0, 3).map((e, i) => `${i+1}. ${e.name}: ${e.score}`).join('<br>');
+            top3Hud.innerHTML = "GLOBAL TOP 3<br>" + leaderboard.slice(0, 3).map((e, i) => `${i+1}. ${e.name}: ${e.score}`).join('<br>');
             lbList.innerHTML = leaderboard.slice(0, 5).map((e, i) => `<div style="display:flex; justify-content:space-between; padding:2px 0;"><span>${i+1}. ${e.name}</span><span>${e.score}</span></div>`).join('');
+        }
+
+        // REAL-TIME LISTENER
+        db.collection("leaderboard").orderBy("score", "desc").limit(10).onSnapshot((snapshot) => {
+            leaderboard = [];
+            snapshot.forEach(doc => leaderboard.push(doc.data()));
+            updateUI();
+        });
+
+        // GLOBAL SAVE
+        async function saveScore() {
+            const playerName = (nameInput.value || 'ANON').toUpperCase();
+            try {
+                await db.collection("leaderboard").add({
+                    name: playerName,
+                    score: score,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                nameInputDiv.style.display = 'none';
+            } catch (e) { console.error("Firebase Error:", e); }
         }
 
         function getTheme() {
             let h = (currentLevel * 72) % 360; 
-            return { 
-                idx: currentLevel % 10, 
-                name: STYLES[currentLevel % 10], 
-                form: FORMS[currentLevel % FORMS.length], 
-                main: `hsl(${h}, 100%, 50%)`, 
-                dark: `hsl(${h}, 80%, 10%)` 
-            };
+            return { idx: currentLevel % 10, name: STYLES[currentLevel % 10], form: FORMS[currentLevel % FORMS.length], main: `hsl(${h}, 100%, 50%)`, dark: `hsl(${h}, 80%, 10%)` };
         }
         let theme = getTheme();
 
@@ -99,7 +130,7 @@
             }
         }
 
-        function resize() { width = canvas.width = Math.min(window.innerWidth, 500); height = canvas.height = window.innerHeight; buildBackground(); updateUI(); }
+        function resize() { width = canvas.width = Math.min(window.innerWidth, 500); height = canvas.height = window.innerHeight; buildBackground(); }
         window.addEventListener('resize', resize); resize();
 
         window.addEventListener('keydown', e => { 
@@ -138,13 +169,6 @@
             }
         }
 
-        function saveScore() {
-            leaderboard.push({ name: (nameInput.value || 'ANON').toUpperCase(), score: score });
-            leaderboard.sort((a,b) => b.score - a.score); leaderboard = leaderboard.slice(0, 10);
-            localStorage.setItem('barko_lb', JSON.stringify(leaderboard));
-            nameInputDiv.style.display = 'none'; updateUI();
-        }
-
         function update() {
             globalTime += 0.1;
             if(shakeFrames > 0) shakeFrames--;
@@ -153,7 +177,7 @@
                 if(deathTimer === 60) {
                     finalScoreDisplay.innerText = "PTS: " + score;
                     if(leaderboard.length < 10 || score > (leaderboard[leaderboard.length-1]?.score || 0)) nameInputDiv.style.display = 'flex';
-                    updateUI(); deathScreen.style.display = 'flex';
+                    deathScreen.style.display = 'flex';
                 }
             }
             if(player.state === 'intro') {
@@ -188,7 +212,6 @@
                 decors.forEach(d => d.y -= scrollSpeed);
                 if(platforms[0].y < -300) { platforms.shift(); spawnPlatform(platforms[platforms.length-1].y + 400); }
             }
-
             particles.forEach((p, i) => {
                 if(!p.isWood && p.life < 1.8) { p.vx = 0; p.vy = 2.8; p.drip += 1.5; }
                 else { p.x += p.vx; p.y += p.vy; p.vy += 0.8; }
@@ -220,12 +243,9 @@
             });
             particles.forEach(p => {
                 ctx.fillStyle = p.color;
-                if(p.splatted && !p.isWood) { ctx.beginPath(); ctx.ellipse(p.x, p.y, p.size * 1.5, p.size * 0.5, 0, 0, Math.PI*2); ctx.fill(); }
-                else { 
-                    let s = p.isWood ? 1 : Math.max(1, Math.abs(p.vy) * 0.15); 
-                    ctx.save(); ctx.translate(p.x, p.y); if(p.isWood) ctx.rotate(globalTime*10); else ctx.rotate(Math.atan2(p.vy, p.vx));
-                    ctx.beginPath(); ctx.ellipse(0, 0, p.size * s, p.size, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
-                }
+                let s = p.isWood ? 1 : Math.max(1, Math.abs(p.vy) * 0.15); 
+                ctx.save(); ctx.translate(p.x, p.y); if(p.isWood) ctx.rotate(globalTime*10); else ctx.rotate(Math.atan2(p.vy, p.vx));
+                ctx.beginPath(); ctx.ellipse(0, 0, p.size * s, p.size, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
             });
             if(gameActive || deathTimer < 60) {
                 ctx.save(); ctx.translate(player.x, !gameActive ? player.pinnedY - 20 : player.y);
@@ -233,7 +253,6 @@
                 let fl = gameActive ? Math.sin(globalTime*5)*10 : 0;
                 ctx.beginPath(); ctx.arc(0,-20,9,0,7); ctx.moveTo(0,-11); ctx.lineTo(0,15); 
                 ctx.moveTo(-20,fl); ctx.lineTo(20,-fl); ctx.moveTo(0,15); ctx.lineTo(-14,32); ctx.moveTo(0,15); ctx.lineTo(14,32); ctx.stroke();
-                
                 if(theme.form === "CROWN") { ctx.fillStyle="#ffd700"; ctx.beginPath(); ctx.moveTo(-10,-24); ctx.lineTo(0,-38); ctx.lineTo(10,-24); ctx.fill(); }
                 if(theme.form === "HAT") { ctx.fillStyle="#222"; ctx.fillRect(-12,-28,24,6); ctx.fillRect(-8,-40,16,12); }
                 if(theme.form === "ANGEL") { ctx.globalAlpha=0.6; ctx.fillStyle="#8af"; ctx.beginPath(); ctx.ellipse(-18,-10,12,25,Math.PI/4,0,7); ctx.ellipse(18,-10,12,25,-Math.PI/4,0,7); ctx.fill(); ctx.globalAlpha=1; }
