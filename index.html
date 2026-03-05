@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE FALL: SPEED BUILD</title>
+    <title>THE FALL: HIGH-OCTANE FINAL</title>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Space+Grotesk:wght@900&display=swap" rel="stylesheet">
     <style>
         :root { --danger: #ff0022; --accent: #ffffff; }
@@ -13,10 +13,8 @@
         #ui { position: absolute; top: 0; left: 0; width: 100%; padding: 15px; box-sizing: border-box; display: flex; justify-content: space-between; pointer-events: none; z-index: 100; font-family: 'Bangers', cursive; }
         .pts { color: #fff; font-size: 2.2rem; text-shadow: 3px 3px 0 #000; }
         #top-3-hud { color: rgba(255,255,255,0.7); font-size: 1rem; text-align: right; text-shadow: 2px 2px 0 #000; line-height: 1.2; }
-        
         #death-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.92); border: 4px solid var(--danger); padding: 20px; display: none; flex-direction: column; align-items: center; z-index: 200; width: 75%; border-radius: 12px; box-shadow: 0 0 50px rgba(255,0,34,0.6); backdrop-filter: blur(8px); }
         .btn-retry { background: #4ade80; color: #000; width: 100%; font-size: 2rem; padding: 12px; margin-top: 10px; border: 4px solid #000; cursor: pointer; font-family: 'Bangers'; text-transform: uppercase; box-shadow: 4px 4px 0 #fff; }
-        
         #name-input-div { display: none; width: 100%; flex-direction: column; align-items: center; margin-bottom: 10px; }
         #name-input { width: 90%; padding: 10px; font-size: 1.4rem; font-family: 'Bangers'; text-align: center; border: 3px solid #fff; background: #000; color: #fff; text-transform: uppercase; }
         #final-score-display { color: #4ade80; font-size: 2.5rem; font-family: 'Bangers'; margin: 5px 0; text-shadow: 2px 2px 0 #000; }
@@ -56,7 +54,7 @@
         const nameInputDiv = document.getElementById('name-input-div'), nameInput = document.getElementById('name-input');
 
         let width, height, player, platforms, particles, decors, score, floorsPassed, gameActive, keys, deathTimer, loopId;
-        const START_SPEED = 5.4;
+        const START_SPEED = 5.83; 
         let scrollSpeed = 0, bgScroll = 0, globalTime = 0, shakeFrames = 0, introTimer = 0, platformsGenerated = 0, currentLevel = 0;
 
         const STYLES = ["CATHEDRAL", "CYBER-LAB", "BIO-SEWER", "SOLAR-FLARE", "VOID-PURPLE", "ARCTIC", "SAND-RUIN", "DEEP-SEA", "MAGMA", "EMERALD"];
@@ -123,8 +121,7 @@
         function init() {
             if(loopId) cancelAnimationFrame(loopId);
             gameActive = true; score = 0; floorsPassed = 0; currentLevel = 0; deathTimer = 0; platformsGenerated = 0;
-            introTimer = 90; // Mobile Optimization: Shortened from 120 to 90
-            scrollSpeed = 0; bgScroll = 0; theme = getTheme(); buildBackground();
+            introTimer = 90; scrollSpeed = 0; bgScroll = 0; theme = getTheme(); buildBackground();
             player = { x: width/2, targetX: width/2, y: -50, targetY: height/4, state: 'intro', pinnedY: null };
             platforms = []; particles = []; decors = []; keys = {};
             scoreEl.innerText = "0"; lvlEl.innerText = theme.name; lvlEl.style.color = theme.main;
@@ -160,9 +157,9 @@
                 }
             }
             if(player.state === 'intro') {
-                player.y += (player.targetY - player.y) * 0.05; // Faster lerp for mobile
+                player.y += (player.targetY - player.y) * 0.05;
                 introTimer--;
-                if(introTimer <= 0) { player.state = 'active'; scrollSpeed = (currentLevel < 3) ? START_SPEED * 0.95 : START_SPEED; }
+                if(introTimer <= 0) { player.state = 'active'; scrollSpeed = START_SPEED; }
             }
             if(gameActive && player.state === 'active') {
                 const K_SPD = 7; if(keys['ArrowLeft'] || keys['KeyA']) player.targetX -= K_SPD; if(keys['ArrowRight'] || keys['KeyD']) player.targetX += K_SPD;
@@ -183,7 +180,7 @@
                                     currentLevel++; theme = getTheme(); buildBackground();
                                     lvlEl.innerText = theme.name; lvlEl.style.color = theme.main;
                                 }
-                                scrollSpeed = (currentLevel < 3) ? (START_SPEED + floorsPassed*0.05) * 0.95 : START_SPEED + floorsPassed*0.05;
+                                scrollSpeed = START_SPEED + floorsPassed * 0.06;
                             }
                         } else { gameActive = false; triggerDeath(player.x, p.y); }
                     }
@@ -234,7 +231,8 @@
                 ctx.save(); ctx.translate(player.x, !gameActive ? player.pinnedY - 20 : player.y);
                 ctx.strokeStyle = "#fff"; ctx.lineWidth = 5; ctx.lineCap = "round";
                 let fl = gameActive ? Math.sin(globalTime*5)*10 : 0;
-                ctx.beginPath(); ctx.arc(0,-20,9,0,7); ctx.moveTo(0,-11); ctx.lineTo(0,15); ctx.moveTo(-20,fl); ctx.lineTo(20,-fl); ctx.moveTo(0,15); ctx.lineTo(-14,32); ctx.moveTo(0,15); ctx.lineTo(14,32); ctx.stroke();
+                ctx.beginPath(); ctx.arc(0,-20,9,0,7); ctx.moveTo(0,-11); ctx.lineTo(0,15); 
+                ctx.moveTo(-20,fl); ctx.lineTo(20,-fl); ctx.moveTo(0,15); ctx.lineTo(-14,32); ctx.moveTo(0,15); ctx.lineTo(14,32); ctx.stroke();
                 
                 if(theme.form === "CROWN") { ctx.fillStyle="#ffd700"; ctx.beginPath(); ctx.moveTo(-10,-24); ctx.lineTo(0,-38); ctx.lineTo(10,-24); ctx.fill(); }
                 if(theme.form === "HAT") { ctx.fillStyle="#222"; ctx.fillRect(-12,-28,24,6); ctx.fillRect(-8,-40,16,12); }
